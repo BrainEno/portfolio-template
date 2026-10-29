@@ -11,14 +11,16 @@
  * Run:  node scripts/art/generate-art.mjs
  */
 import sharp from "sharp";
-import { mkdirSync } from "node:fs";
+import { mkdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 
 const root = path.resolve(import.meta.dirname, "..", "..");
 const out = path.join(root, "public", "images");
 const worksOut = path.join(out, "works");
+const iconsOut = path.join(root, "public", "icons");
 mkdirSync(out, { recursive: true });
 mkdirSync(worksOut, { recursive: true });
+mkdirSync(iconsOut, { recursive: true });
 
 const W = 2560;
 const H = 1707;
@@ -216,4 +218,11 @@ for (const w of works) {
   await renderCard(path.join(worksOut, w.file), 1600, 1000, w.title, w.sub, ["#221d2a", "#141119", "#09080c"]);
 }
 
-console.log("all artwork and images rendered successfully");
+// 5. PWA Icons from icon.svg
+const iconSvgPath = path.join(root, "src", "app", "icon.svg");
+const iconSvgBuf = readFileSync(iconSvgPath);
+await sharp(iconSvgBuf).resize(192, 192).png().toFile(path.join(iconsOut, "icon-192.png"));
+await sharp(iconSvgBuf).resize(512, 512).png().toFile(path.join(iconsOut, "icon-512.png"));
+await sharp(iconSvgBuf).resize(512, 512).png().toFile(path.join(iconsOut, "maskable-512.png"));
+
+console.log("all artwork, images, and PWA icons rendered successfully");

@@ -32,8 +32,8 @@ export const defaultContent: PortfolioContent = {
   hero: {
     headlines: [
       { zh: "前端工程", en: "Web Performance" },
-      { zh: "跨端", en: "Flutter" },
-      { zh: "组件", en: "Widget" },
+      { zh: "原生应用", en: "Flutter" },
+      { zh: "全栈开发", en: "Full Stack" },
     ],
     image: {
       src: "/images/figure.jpg",
@@ -52,15 +52,15 @@ export const defaultContent: PortfolioContent = {
       en: "BrainEno is a frontend engineer and UI designer, a former programmer, and now a freelance vibe coder. He turns the latest AI capabilities into shipped products: designing and building high-quality, highly customisable personal sites and application services end to end — visual language, motion, frontend architecture and the data layer included. His work spans brand sites, content products and cross-platform tools, alongside the open-source repositories he maintains in public.",
     },
     gallery: [
-      { src: "/images/tree1.jpg", alt: { zh: "创作照片 1", en: "Work photo 1" } },
-      { src: "/images/tree3.jpg", alt: { zh: "创作照片 2", en: "Work photo 2" } },
-      { src: "/images/tree4.jpg", alt: { zh: "创作照片 3", en: "Work photo 3" } },
-      { src: "/images/tree2.jpg", alt: { zh: "创作照片 4", en: "Work photo 4" } },
-      { src: "/images/tree5.jpg", alt: { zh: "创作照片 5", en: "Work photo 5" } },
+      { src: "/images/work1.jpg", alt: { zh: "作品照1", en: "Work photo 1" } },
+      { src: "/images/work3.jpg", alt: { zh: "作品照2", en: "Work photo 2" } },
+      { src: "/images/work4.jpg", alt: { zh: "作品照3", en: "Work photo 3" } },
+      { src: "/images/work2.jpg", alt: { zh: "作品照4", en: "Work photo 4" } },
+      { src: "/images/work5.jpg", alt: { zh: "作品照5", en: "Work photo 5" } },
     ],
     accentImages: [
-      { src: "/images/accent-1.jpg", alt: { zh: "作品照片", en: "Performance still" } },
-      { src: "/images/accent-2.jpg", alt: { zh: "演出照片", en: "Show still" } },
+      { src: "/images/screenshot1.jpg", alt: { zh: "作品截图1", en: "Screenshot 1" } },
+      { src: "/images/screenshot2.jpg", alt: { zh: "作品截图2", en: "Screenshot 2" } },
     ],
     secondaryText: {
       zh: "他相信，在 AI 赋能的时代，只有当技术不再成为想象力的瓶颈之后，品味才会变得格外重要。AI 能够实现各种代码层面的功能，却无法替代人类的判断与想象力，也无法替人做出取舍——而取舍，正是作品的性格所在。",
