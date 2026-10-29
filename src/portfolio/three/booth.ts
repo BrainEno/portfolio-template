@@ -157,8 +157,8 @@ function retypeLettering(
   // plate is grown off that strip until it covers the whole baked number and
   // sits inside the recessed plaque on the door.
   const axisScale = mesh.matrixWorld.getMaxScaleOnAxis();
-  const worldWidth = size[u] * axisScale * 0.99;
-  const worldHeight = size[v] * axisScale * 2.1;
+  const worldWidth = size[u] * axisScale * 1.2;
+  const worldHeight = size[v] * axisScale * 4.9;
   if (worldWidth <= 0 || worldHeight <= 0) return;
 
   const texture = makePlateTexture(text, worldWidth / worldHeight, anisotropy);
@@ -202,14 +202,14 @@ function retypeLettering(
 }
 
 export async function mountBooth(host: HTMLElement, options: BoothOptions): Promise<BoothHandle> {
-  const spin = options.reduceMotion ? 0 : (options.spin ?? 0.42);
+  const spin = options.reduceMotion ? 0 : (options.spin ?? 0.16);
 
   const renderer = new WebGLRenderer({ antialias: true, alpha: true, powerPreference: "high-performance" });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
   renderer.setClearAlpha(0);
   renderer.outputColorSpace = SRGBColorSpace;
   renderer.toneMapping = ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.02;
+  renderer.toneMappingExposure = 0.9;
   const canvas = renderer.domElement;
   canvas.className = "contact-booth-webgl";
   canvas.setAttribute("aria-hidden", "true");
@@ -223,12 +223,12 @@ export async function mountBooth(host: HTMLElement, options: BoothOptions): Prom
 
   // Studio-ish lighting: a warm key from the page's right, a cool fill and a
   // rim that separates the dark timber from the white contact sheet.
-  const hemi = new HemisphereLight(0xffffff, 0x2b2b2b, 1.15);
-  const key = new DirectionalLight(0xfff3e2, 2.5);
+  const hemi = new HemisphereLight(0xffffff, 0x2b2b2b, 0.78);
+  const key = new DirectionalLight(0xfff3e2, 1.85);
   key.position.set(2.6, 3.4, 2.9);
-  const fill = new DirectionalLight(0xc2d8ff, 0.9);
+  const fill = new DirectionalLight(0xc2d8ff, 0.55);
   fill.position.set(-3.2, 1.3, 1.7);
-  const rim = new DirectionalLight(0xffffff, 1.5);
+  const rim = new DirectionalLight(0xffffff, 0.85);
   rim.position.set(-0.6, 2.2, -3.4);
   scene.add(hemi, key, fill, rim);
 
@@ -257,7 +257,7 @@ export async function mountBooth(host: HTMLElement, options: BoothOptions): Prom
     for (const material of materials) {
       const standard = material as MeshStandardMaterial;
       if (!standard.isMeshStandardMaterial) continue;
-      standard.envMapIntensity = 0.5;
+      standard.envMapIntensity = 0.32;
       if (standard.map) standard.map.anisotropy = maxAnisotropy;
       if (standard.normalMap) standard.normalMap.anisotropy = maxAnisotropy;
       if (standard.metalnessMap) standard.metalnessMap.anisotropy = maxAnisotropy;

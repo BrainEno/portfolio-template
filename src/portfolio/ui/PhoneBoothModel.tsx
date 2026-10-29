@@ -8,7 +8,7 @@ type Props = {
   src: string;
   /** Flat cutout kept as the pre-WebGL state and the no-WebGL fallback. */
   fallback: string;
-  /** Idle self-rotation, radians per second. */
+  /** Idle self-rotation, radians per second (slow: ~37 s per turn). */
   spin?: number;
   /** Replaces the phone number lettering modelled onto the booth panels. */
   plateText?: string;
@@ -20,7 +20,7 @@ type Props = {
  * plays into an empty box (and so the page still reads correctly without
  * WebGL, on reduced motion, or while the 2 MB model streams in).
  */
-export function PhoneBoothModel({ src, fallback, spin = 0.42, plateText }: Props) {
+export function PhoneBoothModel({ src, fallback, spin = 0.16, plateText }: Props) {
   const hostRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {

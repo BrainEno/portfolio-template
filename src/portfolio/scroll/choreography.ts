@@ -414,39 +414,40 @@ function contact(scope: HTMLElement, desktop: boolean, reduce: boolean) {
           invalidateOnRefresh: true,
         },
       })
-      // 1 — launches in from beyond the right edge, already rising.
+      // 1 — launches in from beyond the right edge, already rising. No CSS
+      // `rotationY`: rotating the canvas in 3D foreshortens it and the booth
+      // reads as a flat, squashed card. The model's own slow spin (in WebGL)
+      // is what turns it, so the volume is never lost.
       .fromTo(
         ".contact-booth",
         {
           autoAlpha: 0,
-          x: () => vw() * 0.98,
+          x: () => vw() * 0.78,
           y: () => vh() * 0.32,
-          rotationY: -26,
-          scale: desktop ? 0.9 : 0.93,
-          transformPerspective: 1700,
+          rotation: -7,
+          scale: desktop ? 0.88 : 0.92,
           transformOrigin: "50% 60%",
         },
         {
           autoAlpha: 1,
-          x: () => vw() * 0.76,
+          x: () => vw() * 0.2,
           y: () => vh() * 0.04,
-          rotationY: -128,
-          scale: 0.96,
-          duration: 0.2,
+          rotation: -3,
+          scale: 0.95,
+          duration: 0.3,
           ease: "power1.out",
         },
         0
       )
       // 2 — the apex: higher than where it lands, still travelling left.
-      .to(".contact-booth", { y: () => -vh() * 0.14, duration: 0.3, ease: "power2.out" }, 0.2)
-      .to(".contact-booth", { x: () => vw() * 0.4, duration: 0.3, ease: "sine.inOut" }, 0.2)
-      .to(".contact-booth", { rotationY: -232, scale: 1.03, duration: 0.3, ease: "sine.inOut" }, 0.2)
+      .to(".contact-booth", { y: () => -vh() * 0.12, duration: 0.3, ease: "power2.out" }, 0.3)
+      .to(".contact-booth", { rotation: 1.5, scale: 1.02, duration: 0.3, ease: "sine.inOut" }, 0.3)
       // 3 — gravity takes over and drops it into the right column.
-      .to(".contact-booth", { y: 0, duration: 0.3, ease: "power2.in" }, 0.5)
-      .to(".contact-booth", { x: 0, duration: 0.36, ease: "power2.out" }, 0.5)
-      .to(".contact-booth", { rotationY: -336, scale: 1, duration: 0.36, ease: "power2.out" }, 0.5)
+      .to(".contact-booth", { y: 0, duration: 0.28, ease: "power2.in" }, 0.6)
+      .to(".contact-booth", { x: 0, duration: 0.34, ease: "power2.out" }, 0.3)
+      .to(".contact-booth", { rotation: 0, scale: 1, duration: 0.34, ease: "power2.out" }, 0.6)
       // 4 — a slow leftward drift to its resting spot.
-      .to(".contact-booth", { x: () => -vw() * 0.045, rotationY: -360, duration: 0.28, ease: "none" }, 0.72)
+      .to(".contact-booth", { x: () => -vw() * 0.015, duration: 0.3, ease: "none" }, 0.7)
       .fromTo(
         ".contact-booth-shadow",
         { autoAlpha: 0, scale: 0.4 },
@@ -454,32 +455,25 @@ function contact(scope: HTMLElement, desktop: boolean, reduce: boolean) {
         0.55
       );
 
-    // Copy: the block rises out of the middle of the sheet rather than off the
-    // bottom edge — the trigger fires once the headline sits just under the
-    // viewport centre, so the type is already in the composition while the
-    // booth is still in the air. Each line then wipes up out of its own mask
-    // on a short stagger, with the block itself drifting up a couple of vh.
+    // Copy: one solid block that slides up out of the television as the white
+    // is still blooming — no per-line wipe, no mask slicing. The block simply
+    // rises with the scroll and fades in, so the first thing you read is a
+    // finished line of type.
     gsap
       .timeline({
         scrollTrigger: {
           trigger: "#contact",
-          start: "top 86%",
-          end: "top 18%",
-          scrub: 0.6,
+          start: "top 98%",
+          end: "top 34%",
+          scrub: 0.55,
           invalidateOnRefresh: true,
         },
       })
       .fromTo(
         ".contact-headlines",
-        { y: () => vh() * 0.04, autoAlpha: 0.001 },
-        { y: 0, autoAlpha: 1, duration: 0.48, ease: "power2.out" },
+        { y: () => vh() * 0.34, autoAlpha: 0.12 },
+        { y: 0, autoAlpha: 1, duration: 1, ease: "power1.out" },
         0
-      )
-      .fromTo(
-        ".contact-line-text",
-        { yPercent: 118 },
-        { yPercent: 0, duration: 0.6, ease: "power3.out", stagger: 0.12 },
-        0.02
       );
   }
 
