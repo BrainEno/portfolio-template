@@ -206,13 +206,13 @@ const MARQUEE_REPEAT = Array.from({ length: 8 }, (_, i) => i);
  */
 const BOOTH_MODEL_SRC = "/gltfs/telephone.glb";
 
-function ContactBooth({ fallback }: { fallback: string }) {
+function ContactBooth({ fallback, plateText }: { fallback: string; plateText: string }) {
   return (
     <div className="contact-booth" aria-hidden="true">
       <span className="contact-booth-shadow" />
       <div className="contact-booth-float">
         {/* Drag rotates the model; the scroll timeline drives `.contact-booth`. */}
-        <PhoneBoothModel src={BOOTH_MODEL_SRC} fallback={fallback} />
+        <PhoneBoothModel src={BOOTH_MODEL_SRC} fallback={fallback} plateText={plateText} />
       </div>
     </div>
   );
@@ -243,7 +243,7 @@ export const Contact = memo(function Contact({ lang, content }: SectionProps<"co
           ))}
         </div>
 
-        <ContactBooth fallback={content.image.src} />
+        <ContactBooth fallback={content.image.src} plateText={content.email} />
 
         <a href={mailto} className="contact-marquee" aria-label={content.email} data-cursor="link">
           {[0, 1].map((track) => (

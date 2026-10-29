@@ -1040,26 +1040,29 @@ body {
 .contact-headlines {
   position: relative;
   /* Copy owns the left column so the booth gets a clean right column; the
-     two never overlap on the sheet. The width and the type size are paired:
-     "MARQUEE MOON" measures ~10.3× the font size, so 70vw of room allows up
-     to 6.6vw type without a line ever wrapping mid-scrub (a rewrap would make
-     the whole block jump while the text is rising). */
+     two never overlap on the sheet. Width and type size are paired: with the
+     display tracking, "MARQUEE MOON" measures ~8.2× the font size, so 74vw of
+     room allows up to 7vw type without a line ever wrapping mid-scrub (a
+     rewrap would make the whole block jump while the text is rising). */
   z-index: 2;
-  max-width: 70vw;
+  max-width: 74vw;
 }
 
 .contact-line {
   overflow: hidden;
-  font-size: clamp(32px, 6.2vw, 118px);
+  /* Display caps are set tight: negative tracking and a compressed leading are
+     what make three stacked lines read as one block instead of three rows. */
+  font-size: clamp(34px, 7vw, 132px);
   font-weight: 500;
-  line-height: 0.94;
+  line-height: 0.88;
+  letter-spacing: -0.022em;
   text-transform: uppercase;
   color: transparent;
   -webkit-text-stroke: clamp(1.5px, 0.2vw, 3.5px) #000;
 }
 
 .contact-line + .contact-line {
-  margin-top: -0.04em;
+  margin-top: -0.03em;
 }
 
 .contact-line-3 {
@@ -1158,9 +1161,9 @@ body {
   /* No transform of its own: GSAP owns `transform` for the entrance, so the
      box is centred with margins instead of translateY(-50%). */
   top: 50%;
-  margin-top: max(-31svh, -620px);
-  right: 5vw;
-  height: min(62svh, 620px);
+  margin-top: max(-38svh, -348px);
+  right: 9vw;
+  height: min(68svh, 660px);
   aspect-ratio: 9 / 16;
   will-change: transform;
 }
@@ -1594,7 +1597,7 @@ body {
     top: auto;
     right: auto;
     align-self: flex-end;
-    height: 58svh;
+    height: 62svh;
     aspect-ratio: 9 / 16;
     margin: -2vh -4vw 3vh 0;
   }

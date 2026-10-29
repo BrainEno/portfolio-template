@@ -10,6 +10,8 @@ type Props = {
   fallback: string;
   /** Idle self-rotation, radians per second. */
   spin?: number;
+  /** Replaces the phone number lettering modelled onto the booth panels. */
+  plateText?: string;
 };
 
 /**
@@ -18,7 +20,7 @@ type Props = {
  * plays into an empty box (and so the page still reads correctly without
  * WebGL, on reduced motion, or while the 2 MB model streams in).
  */
-export function PhoneBoothModel({ src, fallback, spin = 0.42 }: Props) {
+export function PhoneBoothModel({ src, fallback, spin = 0.42, plateText }: Props) {
   const hostRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -36,7 +38,7 @@ export function PhoneBoothModel({ src, fallback, spin = 0.42 }: Props) {
       try {
         const { mountBooth } = await import("../three/booth");
         if (disposed) return;
-        const mounted = await mountBooth(host, { url: src, spin, reduceMotion: reduce });
+        const mounted = await mountBooth(host, { url: src, spin, reduceMotion: reduce, plateText });
         if (disposed) {
           mounted.dispose();
           return;
@@ -83,7 +85,7 @@ export function PhoneBoothModel({ src, fallback, spin = 0.42 }: Props) {
       handle?.dispose();
       handle = null;
     };
-  }, [src, spin]);
+  }, [src, spin, plateText]);
 
   return (
     <div ref={hostRef} className="contact-booth-canvas" aria-hidden="true">
