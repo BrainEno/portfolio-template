@@ -152,7 +152,7 @@ export default function Portfolio({
   }, []);
 
   useEffect(() => {
-    document.documentElement.lang = lang === "zh" ? "zh-Hant" : "en";
+    document.documentElement.lang = lang === "zh" ? "zh-Hans" : "en";
     document.title = t(content.identity.pageTitle, lang) || content.identity.name;
   }, [lang, content.identity, revision]);
 

@@ -1,0 +1,52 @@
+# One command self-hosting:   docker compose up -d --build
+# Optional HTTPS with a domain: DOMAIN=example.com docker compose --profile https up -d --build
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: portfolio
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-portfolio}
+      POSTGRES_DB: portfolio
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U portfolio -d portfolio"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    # Local dev (npm run dev) can reach it on 127.0.0.1:5432
+    ports:
+      - "127.0.0.1:5432:5432"
+
+  web:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://portfolio:${POSTGRES_PASSWORD:-portfolio}@db:5432/portfolio
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+      ADMIN_SECRET: ${ADMIN_SECRET:-}
+      NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL:-}
+    ports:
+      - "${WEB_PORT:-3000}:3000"
+
+  caddy:
+    image: caddy:2-alpine
+    profiles: ["https"]
+    restart: unless-stopped
+    depends_on: [web]
+    environment:
+      DOMAIN: ${DOMAIN:-localhost}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+
+volumes:
+  pgdata:
+  caddy_data:

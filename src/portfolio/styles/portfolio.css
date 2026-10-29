@@ -1,19 +1,9 @@
-@font-face {
-  font-family: "Aeonik";
-  src: url("/fonts/Aeonik-Regular.woff2") format("woff2"), url("/fonts/Aeonik-Regular.woff") format("woff");
-  font-weight: 400;
-  font-style: normal;
-  font-display: swap;
-}
 
 :root {
   --ink: #fcfcfc;
   --paper: #ffffff;
   --muted: #898989;
   --muted-strong: #bbbbbb;
-  --font-sans: "Aeonik", "Helvetica Neue", Arial, sans-serif;
-  --font-serif: "Inria Serif", "Times New Roman", serif;
-  --font-cjk: "PingFang TC", "PingFang SC", "Noto Sans TC", "Noto Sans SC", "Microsoft JhengHei", "Microsoft YaHei", sans-serif;
   --gutter: 3.125vw;
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
 }
@@ -1001,8 +991,14 @@ body {
 .contact {
   position: relative;
   z-index: 2;
+  /* The sheet rises over the end of the television zoom (no blank beat):
+     it overlaps the exit spacer by 28vh and has a rounded leading edge. */
+  margin-top: -28vh;
+  border-radius: clamp(22px, 3.6vw, 56px) clamp(22px, 3.6vw, 56px) 0 0;
+  overflow: hidden;
   background: var(--paper);
   color: #000;
+  box-shadow: 0 -2.5vw 6vw rgba(0, 0, 0, 0.55);
 }
 
 .contact-inner {
@@ -1131,6 +1127,7 @@ body {
 }
 
 .contact-booth {
+  transform-style: preserve-3d;
   position: absolute;
   /* Above the headline hit-area so the booth can actually receive drag
      gestures; the marquee (later in DOM, z-index 3) still wins at the floor. */
@@ -1631,6 +1628,7 @@ body {
 
   .tv-phone-spacer { height: 90vh; }
   .tv-exit-spacer { height: 130vh; }
+  .contact { margin-top: -20vh; }
 
   .contact-inner {
     padding: 12vh var(--gutter) 28px;

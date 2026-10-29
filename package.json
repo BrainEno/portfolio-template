@@ -1,17 +1,26 @@
 {
-  "name": "nextjs-postgresql-template",
+  "name": "portfolio-template",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev --webpack",
+    "dev:turbo": "next dev --turbo",
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "setup": "bash scripts/setup.sh",
+    "doctor": "node scripts/doctor.mjs",
+    "db:push": "drizzle-kit push",
+    "db:studio": "drizzle-kit studio",
+    "deploy": "bash scripts/deploy.sh",
+    "cf:build": "opennextjs-cloudflare build",
+    "cf:preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
+    "cf:deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
+    "art": "node scripts/art/generate-art.mjs"
   },
   "dependencies": {
-    "@gsap/react": "^2.1.2",
     "@netlify/database": "^2.0.1",
-    "@opennextjs/cloudflare": "^1.20.0",
+    "@opennextjs/cloudflare": "^1.20.14",
     "dotenv": "17.3.1",
     "drizzle-orm": "0.45.2",
     "gsap": "^3.15.0",
@@ -33,5 +42,8 @@
     "postcss": "8.5.8",
     "tailwindcss": "4.1.17",
     "typescript": "5.9.3"
+  },
+  "engines": {
+    "node": ">=20"
   }
 }

@@ -1,3 +1,20 @@
+/* Shared design tokens: the index page and /admin read the same fonts. */
+@font-face {
+  /* Licensed face: install it locally, or drop Aeonik-Regular.woff2 into
+     public/fonts and add a url(...) source here. Falls back to Inter. */
+  font-family: "Aeonik";
+  src: local("Aeonik"), local("Aeonik Regular"), local("Aeonik-Regular");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  --font-sans: "Aeonik", var(--font-inter), "Helvetica Neue", Arial, sans-serif;
+  --font-serif: var(--font-inria), "Inria Serif", "Times New Roman", serif;
+  --font-cjk: "PingFang SC", "PingFang TC", "Noto Sans SC", "Noto Sans TC", "Microsoft YaHei", "Microsoft JhengHei", sans-serif;
+}
+
 html,
 body {
   margin: 0;

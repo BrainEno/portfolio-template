@@ -1,0 +1,15 @@
+# /etc/systemd/system/portfolio.service  ->  systemctl enable --now portfolio
+[Unit]
+Description=Portfolio (Next.js)
+After=network.target postgresql.service
+
+[Service]
+WorkingDirectory=/opt/portfolio
+EnvironmentFile=/opt/portfolio/.env
+Environment=NODE_ENV=production PORT=3000
+ExecStart=/usr/bin/npm run start
+Restart=always
+User=www-data
+
+[Install]
+WantedBy=multi-user.target

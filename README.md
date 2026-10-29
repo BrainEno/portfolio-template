@@ -1,108 +1,73 @@
-# 动态作品集 Portfolio — GSAP 滚动编排 · 可视化后台
+# Portfolio Template · 动态作品集
 
-单页滚动叙事 + 全站可视化编辑的个人作品集模板。设计语言继承
-danielspatzek.com 式的表现主义排印：旋转标题、图像切片、肖像长卷、
-电视机作品索引、电话亭联系收尾；所有文案、照片、作品、颜色都可以在
-`/admin` 后台直接修改并发布，无需改代码。
+单页滚动叙事 + 可视化后台的个人作品集模板：旋转标题、肖像长卷、电视机作品索引、电话亭联系收尾。
+所有文案、照片、作品条目都能在 `/admin` 里改，**数据存 PostgreSQL**，一键备份 / 迁移。
 
-- `/` — 预加载 → 主视觉 → 肖像 / 传记 / 画廊长卷（桌面端全屏 pin 编排，
-  阅读停留按文案长度自适应）→ 电视机作品索引（行悬停点亮屏幕 → 玻璃上的
-  电话号码 → 穿屏放大溶解）→ 联系方式。
-- `/admin` — 密码保护的编辑后台：中英双语字段、图片上传或外链、画廊 /
-  作品的增删排序、电视机玻璃位置校准、主题色、JSON 导入导出、一键发布。
+技术栈：Next.js 16（App Router）· React 19 · TypeScript · GSAP（ScrollTrigger + ScrollSmoother）· PostgreSQL（`pg`，表结构见 `src/db/schema.ts`）。
 
-技术栈：Next.js 16（App Router）· React 19 · TypeScript · GSAP 3
-（ScrollTrigger + ScrollSmoother）· PostgreSQL（Netlify Database / 任意 Postgres）。
-
-## 双模运行：演示 → 正式
-
-| 模式 | 触发条件 | 密码 | 数据 |
-|---|---|---|---|
-| 演示 Demo | 没有可用数据库 | 无需密码（直接进入） | 示例内容 + 浏览器缓存草稿（自动保存，首页实时同步） |
-| 正式 Live | 成功连接 PostgreSQL | 你自己设置的密码 / `ADMIN_PASSWORD` | 持久化在数据库 |
-
-连上数据库后**临时密码与假数据自动停用**，程序自动建表，无需手动迁移。
-`/adam` 是同一个后台的只读预览（不改数据），连库后自动改为 Live 页并指向 `/admin`。
-
-后台 **Data** 页签支持一键备份与迁移：导出内容 + 全部引用图片，在另一个站
-（或重置后的库）一键恢复。
-
-- Netlify / Cloudflare / Vercel / Railway / Render / Fly 部署：`docs/PLATFORM_DEPLOY.md`
-- Netlify Database 图文步骤：`docs/NETLIFY_DEPLOY.md`
-- 本地运行 / 自建服务器 / 环境变量：`docs/SETUP.md`
-- 已知问题与后续计划：`docs/ROADMAP.md`
-
-## 快速开始
+## 30 秒跑起来
 
 ```bash
-nvm use              # Node 22（见 .nvmrc）
-npm install
-
-# 1. 准备 PostgreSQL（任选其一：本地安装 / Docker / 云数据库），
-#    然后配置 .env，详见 docs/SETUP.md
-cp .env.example .env 2>/dev/null || true   # 本仓库直接编辑 .env 即可
-
-# 2. 建表
-npx drizzle-kit push
-
-# 3. 启动
-npm run dev          # http://localhost:3000 · /admin（演示模式直接进入）· /adam
+git clone https://github.com/BrainEno/portfolio-template.git && cd portfolio-template
+bash scripts/setup.sh          # 装依赖、生成 .env、(有 Docker 就顺手起 Postgres)、启动 dev
+# 没有 Docker / 不想装数据库：bash scripts/setup.sh --no-db   （演示模式，照样能用 /admin）
 ```
 
-> 没有数据库时 `/admin` 使用无需密码（直接进入）（演示模式，重启恢复）。
-> 配置好 PostgreSQL 后临时密码自动失效，首次进入 `/admin` 会让你设置正式密码。
+打开 <http://localhost:3000>（首页）和 <http://localhost:3000/admin>（后台）。
+手动方式：`npm install && cp .env.example .env && npm run dev`。出问题先跑 `npm run doctor`。
 
-## 项目结构
+## 两种运行模式（自动切换，无需配置）
 
-```
-src/
-  app/
-    page.tsx                 首页（服务端读取内容 → 客户端编排）
-    admin/page.tsx           /admin 后台（演示模式直接进入 / 正式模式密码保护）
-    adam/page.tsx            /adam 临时只读预览（连库后自动停用）
-    api/status/route.ts      后端模式探测（demo / postgres）
-    api/content|media|session|health  内容读写 / 图片上传 / 会话 / 健康检查
-  portfolio/                 ★ 可整体复用，与框架无关的核心
-    content/                 types 类型契约 · defaults 默认文案 · normalize 入库校验
-    scroll/choreography.ts   全部 GSAP 时间线（桌面 / 移动端 / reduced-motion）
-    ui/                      Portfolio 壳 + Hero/Journey/Works/Contact 四幕
-    admin/AdminApp.tsx        后台编辑器（客户端组件）
-    server/                  db.ts（Postgres/演示双模存储、自动建表、模式探测）
-                             auth.ts（签名 cookie、scrypt 密码）+ api.ts（Web 标准处理函数）
-    styles/                  portfolio.css · admin.css
-  db/schema.ts               site_content · media_assets · admin_settings
-public/images|fonts          生产资料（人物主视觉、肖像、作品图、电视机框…）
-export/react-router/         可独立下载、本地运行、可部署 Netlify 的 React Router 8 工程
-docs/SETUP.md                从零搭建、.env 配置、生产部署、故障排查
-docs/ROADMAP.md              本轮修复记录与后续开发路线
-scripts/build-export.mjs     把本工程打包成 export/react-router zip（含后台下载按钮）
-```
+| 模式 | 触发条件 | /admin | 数据 |
+|---|---|---|---|
+| **演示 Demo** | 没有可用的 PostgreSQL | 直接进入，无需密码 | 内置 mock 数据；你的修改保存在**本浏览器缓存**（localStorage + BroadcastChannel），首页实时同步 |
+| **正式 Live** | 成功连上 PostgreSQL | 首次访问设置密码（或用 `ADMIN_PASSWORD`） | 全部存数据库；**mock 数据与浏览器草稿自动失效** |
 
-内容模型只有一张“整站 JSON”：后台发布即覆盖 `site_content` 一行；
-上传的图片存 `media_assets` 并以 `/api/media/:id` 提供，前端无需改动。
+mock 数据与数据库表使用**同一份 JSON 结构**，Data 页签里的「备份」可把演示草稿 / 一个站的内容（含图片）一键迁到另一个站。
+
+## 部署（小白也能成）
+
+| 目标 | 一条命令 / 入口 | 文档 |
+|---|---|---|
+| 自己的 VPS（含数据库，自动 HTTPS） | `DOMAIN=你的域名 bash scripts/deploy.sh docker` | [docs/DEPLOY.md](docs/DEPLOY.md#1-vps--自有服务器推荐docker) |
+| 全新 Ubuntu 服务器一键 | `curl -fsSL …/scripts/vps-install.sh \| DOMAIN=x.com bash` | 同上 |
+| Netlify | 导入仓库 + 添加 Netlify Database | [docs/DEPLOY.md](docs/DEPLOY.md#3-netlify) |
+| Cloudflare Workers | `npm run cf:deploy`（Hyperdrive / secret 两种连库方式） | [docs/DEPLOY.md](docs/DEPLOY.md#4-cloudflare-workersopennext) |
+| Vercel / Railway / Render / Fly | 导入仓库，加 `DATABASE_URL` | [docs/DEPLOY.md](docs/DEPLOY.md#5-vercel--railway--render--fly) |
+
+## 文档
+
+- [docs/QUICKSTART.md](docs/QUICKSTART.md) — 本地运行、第一次进后台、改内容、换图片、备份恢复（零基础）
+- [docs/DEPLOY.md](docs/DEPLOY.md) — 各平台部署、环境变量表、数据库迁移、排错
+- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — 代码结构审查与重构记录、SEO / PWA / 图片框架 / 动效设计说明
 
 ## 常用命令
 
 | 命令 | 说明 |
 |---|---|
-| `npm run dev` | 本地开发 |
-| `npm run build` / `npm start` | 生产构建 / 生产运行 |
-| `npm run typecheck` | 类型检查 |
-| `npx drizzle-kit push` | 按 `src/db/schema.ts` 同步表结构 |
-| `node scripts/build-export.mjs` | 重新生成 `public/downloads/portfolio-react-router.zip` |
+| `npm run dev` / `build` / `start` | 开发 / 构建 / 生产运行 |
+| `npm run setup` · `npm run doctor` | 一键本地准备 · 配置自检 |
+| `npm run deploy` | 交互式部署菜单（docker / node / netlify / cloudflare / vercel） |
+| `npm run cf:preview` · `cf:deploy` | Cloudflare 本地预览 · 部署 |
+| `npm run db:push` | （可选）用 drizzle-kit 同步表结构；应用自身首次连库时也会自动建表 |
+| `npm run art` | 重新生成电视机 / 电话亭矢量插画 |
 
-## 部署
+## 目录结构
 
-- **Netlify**：用 `/admin` 左下角下载的 `portfolio-react-router.zip`
-  （React Router 8 + PostgreSQL/Netlify Database 持久化），在 Netlify 导入、
-  连接数据库即可上线。零基础步骤见 `docs/NETLIFY_DEPLOY.md`。
-- **VPS / 自有服务器**：本 Next.js 工程 `npm run build && npm start`
-  即可运行，配合 systemd + 反向代理；PostgreSQL 可放本机或云数据库。
-  细节见 `docs/SETUP.md`。
-
-## 文档
-
-- `docs/PLATFORM_DEPLOY.md` — **多平台零基础部署**：Netlify、Cloudflare Hyperdrive、Vercel、Railway、Render、Fly。
-- `docs/NETLIFY_DEPLOY.md` — Netlify + PostgreSQL、首次设密码、改 works、排错表。
-- `docs/SETUP.md` — 环境搭建、`.env` 配置项、数据库、本地运行、自建服务器部署。
-- `docs/ROADMAP.md` — 已知问题归纳与后续开发路线（含每轮修复记录）。
+```
+src/app/                 路由层（薄）：/ · /admin · /works/[id] · /offline · /api/* · robots/sitemap/manifest
+src/portfolio/
+  content/               types · defaults(mock) · normalize —— 内容契约，前后端共用
+  server/                connection(平台识别+连接串) · storage(Postgres/演示存储) · backend(探测/鉴权配置)
+                         auth · http · *-handlers(content/session/backup/status) · api(统一出口)
+  client/                demo-store(浏览器缓存草稿) · useLiveContent(首页实时订阅)
+  scroll/choreography.ts 全部 GSAP 时间线
+  ui/                    Portfolio 壳 · 四幕 sections · PwaRegister
+  admin/                 AdminApp(壳) · editor · fields · DataPanel · Login · shared
+  seo/site.ts            站点 URL / JSON-LD / 标题规则
+  styles/                portfolio.css · admin.css · work-detail.css
+src/db/schema.ts         drizzle 表定义（site_content · media_assets · admin_settings）
+public/sw.js             离线缓存 Service Worker
+scripts/                 setup.sh · deploy.sh · vps-install.sh · doctor.mjs · art/
+Dockerfile · docker-compose.yml · netlify.toml · wrangler.jsonc · open-next.config.ts · deploy/
+```

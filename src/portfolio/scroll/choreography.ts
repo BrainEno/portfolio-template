@@ -364,24 +364,39 @@ function television(scope: HTMLElement, opts: ChoreographyOptions, desktop: bool
 }
 
 function contact(scope: HTMLElement, desktop: boolean, reduce: boolean) {
+  // The contact sheet is pulled up over the end of the television exit
+  // (negative margin in CSS), so its headlines start rising while the zoom is
+  // still running instead of waiting for the white-out to finish.
   gsap.from(".contact-line-text", {
     yPercent: 110,
-    duration: 1.4,
+    duration: 1.3,
     ease: "expo.out",
-    stagger: 0.1,
-    scrollTrigger: { trigger: ".contact-headlines", start: "top 78%", toggleActions: "play none none reverse" },
+    stagger: 0.09,
+    scrollTrigger: { trigger: ".contact-headlines", start: "top 96%", toggleActions: "play none none reverse" },
   });
 
-  gsap
-    .timeline({
+  if (reduce) {
+    gsap.set(".contact-booth", { autoAlpha: 1, clearProps: "transform" });
+  } else {
+    // Scroll-scrubbed pseudo-3D arrival: the booth swings in from the left
+    // edge (rotationY), tilts up from the floor (rotationX), grows from a
+    // distant 0.55 scale, overshoots slightly and settles. The shadow widens
+    // in sync and the headlines drift against it for parallax depth.
+    const swing = desktop ? 46 : 28;
+    const tl = gsap.timeline({
       defaults: { ease: "none" },
-      scrollTrigger: { trigger: ".contact-inner", start: "top 85%", end: "top 15%", scrub: true },
-    })
-    .fromTo(
+      scrollTrigger: { trigger: "#contact", start: "top bottom", end: desktop ? "top -8%" : "top 4%", scrub: 0.7 },
+    });
+    tl.fromTo(
       ".contact-booth",
-      { autoAlpha: 0, y: desktop ? "14vh" : 60, scale: 0.9, rotation: 3 },
-      { autoAlpha: 1, y: 0, scale: 1, rotation: 0, ease: "power2.out" }
-    );
+      { autoAlpha: 0, y: desktop ? "26vh" : 90, scale: 0.55, rotationY: -swing, rotationX: 12, z: -260, transformPerspective: 1100, transformOrigin: "50% 92%" },
+      { autoAlpha: 1, y: 0, scale: 1, rotationY: 0, rotationX: 0, z: 0, ease: "power2.out", duration: 0.78 },
+      0
+    )
+      .to(".contact-booth", { scale: desktop ? 1.06 : 1.03, rotationY: desktop ? 7 : 4, y: desktop ? "-1.5vh" : -10, ease: "sine.inOut", duration: 0.22 }, 0.78)
+      .fromTo(".contact-booth-shadow", { scaleX: 0.45, opacity: 0 }, { scaleX: 1, opacity: 0.4, duration: 0.8, ease: "power2.out" }, 0)
+      .fromTo(".contact-headlines", { y: desktop ? "9vh" : 36 }, { y: desktop ? "-3vh" : -12, duration: 1 }, 0);
+  }
 
   gsap.from(".contact-footer > *", {
     y: 24,

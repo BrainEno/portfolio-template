@@ -6,7 +6,7 @@ import type { PortfolioContent } from "./types";
  * Two jobs:
  *  1. the production defaults when nothing has been published yet;
  *  2. the mock dataset used by the database-free demo mode (/admin in a
- *     browser cache, /adam read-only preview) — the JSON shape is identical to
+ *     browser cache) — the JSON shape is identical to
  *     what is stored in PostgreSQL, so a later `Restore backup` is lossless.
  *
  * Chinese copy is Simplified (简体中文); the English column is kept at the same
@@ -36,7 +36,7 @@ export const defaultContent: PortfolioContent = {
       { zh: "组件", en: "Widget" },
     ],
     image: {
-      src: "/images/figure.webp",
+      src: "/images/figure.jpg",
       alt: { zh: "人物主视觉", en: "Portrait artwork" },
     },
   },
@@ -59,8 +59,8 @@ export const defaultContent: PortfolioContent = {
       { src: "/images/tree5.jpg", alt: { zh: "创作照片 5", en: "Work photo 5" } },
     ],
     accentImages: [
-      { src: "/images/hairy-ape-accent.png", alt: { zh: "作品照片", en: "Performance still" } },
-      { src: "/images/show.png", alt: { zh: "演出照片", en: "Show still" } },
+      { src: "/images/accent-1.jpg", alt: { zh: "作品照片", en: "Performance still" } },
+      { src: "/images/accent-2.jpg", alt: { zh: "演出照片", en: "Show still" } },
     ],
     secondaryText: {
       zh: "他相信，在 AI 赋能的时代，只有当技术不再成为想象力的瓶颈之后，品味才会变得格外重要。AI 能够实现各种代码层面的功能，却无法替代人类的判断与想象力，也无法替人做出取舍——而取舍，正是作品的性格所在。",
@@ -93,7 +93,7 @@ export const defaultContent: PortfolioContent = {
         year: "2026.04.22",
         credit: { zh: "Flutter · Dart · 本地优先", en: "Flutter · Dart · Local-first" },
         image: {
-          src: "/images/works/lyric-forge-ktv.webp",
+          src: "/images/works/lyric-forge-ktv.jpg",
           alt: { zh: "lyric-forge-ktv 仓库", en: "lyric-forge-ktv repository" },
         },
         url: "https://github.com/BrainEno/lyric-forge-ktv",
@@ -103,7 +103,7 @@ export const defaultContent: PortfolioContent = {
         },
         detailImages: [
           {
-            src: "/images/works/lyric-forge-ktv.webp",
+            src: "/images/works/lyric-forge-ktv.jpg",
             alt: { zh: "lyric-forge-ktv 界面", en: "lyric-forge-ktv interface" },
           },
         ],
@@ -114,7 +114,7 @@ export const defaultContent: PortfolioContent = {
         year: "2026.10.24",
         credit: { zh: "TypeScript · pnpm · Node", en: "TypeScript · pnpm · Node" },
         image: {
-          src: "/images/works/no-wave.webp",
+          src: "/images/works/no-wave.jpg",
           alt: { zh: "no-wave 仓库", en: "no-wave repository" },
         },
         url: "https://github.com/BrainEno/no-wave",
@@ -124,7 +124,7 @@ export const defaultContent: PortfolioContent = {
         },
         detailImages: [
           {
-            src: "/images/works/no-wave.webp",
+            src: "/images/works/no-wave.jpg",
             alt: { zh: "no-wave 项目结构", en: "no-wave project structure" },
           },
         ],
@@ -135,7 +135,7 @@ export const defaultContent: PortfolioContent = {
         year: "2022.11.11",
         credit: { zh: "React Router · GSAP · Netlify", en: "React Router · GSAP · Netlify" },
         image: {
-          src: "/images/works/remix-partfolio.webp",
+          src: "/images/works/remix-partfolio.jpg",
           alt: { zh: "remix-partfolio 仓库", en: "remix-partfolio repository" },
         },
         url: "https://github.com/BrainEno/remix-partfolio",
@@ -145,7 +145,7 @@ export const defaultContent: PortfolioContent = {
         },
         detailImages: [
           {
-            src: "/images/works/remix-partfolio.webp",
+            src: "/images/works/remix-partfolio.jpg",
             alt: { zh: "remix-partfolio 首页", en: "remix-partfolio landing page" },
           },
         ],
@@ -156,7 +156,7 @@ export const defaultContent: PortfolioContent = {
         year: "2026.10.02",
         credit: { zh: "Python · Flutter · LLM", en: "Python · Flutter · LLM" },
         image: {
-          src: "/images/works/ScribeForge.webp",
+          src: "/images/works/scribeforge.jpg",
           alt: { zh: "ScribeForge 仓库", en: "ScribeForge repository" },
         },
         url: "https://github.com/BrainEno/ScribeForge",
@@ -166,7 +166,7 @@ export const defaultContent: PortfolioContent = {
         },
         detailImages: [
           {
-            src: "/images/works/ScribeForge.webp",
+            src: "/images/works/scribeforge.jpg",
             alt: { zh: "ScribeForge 写作界面", en: "ScribeForge writing view" },
           },
         ],
@@ -177,7 +177,7 @@ export const defaultContent: PortfolioContent = {
         year: "2026.09.29",
         credit: { zh: "C# · .NET · WinForms", en: "C# · .NET · WinForms" },
         image: {
-          src: "/images/works/win7-book-management.webp",
+          src: "/images/works/win7-book-management.jpg",
           alt: { zh: "win7-book-management 仓库", en: "win7-book-management repository" },
         },
         url: "https://github.com/BrainEno/win7-book-management",
@@ -187,7 +187,7 @@ export const defaultContent: PortfolioContent = {
         },
         detailImages: [
           {
-            src: "/images/works/win7-book-management.webp",
+            src: "/images/works/win7-book-management.jpg",
             alt: { zh: "win7-book-management 主界面", en: "win7-book-management main view" },
           },
         ],
