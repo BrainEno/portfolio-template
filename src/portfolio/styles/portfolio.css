@@ -1005,22 +1005,22 @@ body {
 }
 
 .tv-exit-spacer {
-  /* Long enough for the wordmark swell, the stripe melt and the burn-out to
-     white — and short enough that the white frame hands over to the contact
-     sheet instead of leaving a stretch of empty white. */
-  height: 148vh;
+  /* The zoom + white is compressed into the first third of this distance so
+     the copy can start rising out of the bottom edge while the tube is still
+     burning out — there is no parked white frame to wait through. */
+  height: 130vh;
 }
 
 /* Contact ------------------------------------------------------------ */
 .contact {
   position: relative;
   z-index: 2;
-  /* The sheet rises over the end of the television zoom. Because the
-     television exit already ends in a full white frame, the top of this
-     section is plain white on white: no rounded edge, no drop shadow, so the
-     contact layout appears to grow straight out of the transition instead of
-     sliding in as a separate card. */
-  margin-top: -28vh;
+  /* The sheet is pulled far up under the television exit so its copy can
+     enter the frame while the tube is still burning out. Its white background
+     starts transparent and is faded in by the exit timeline (GSAP), so it
+     never reads as a white card sliding over a dark scene — by the time it is
+     opaque, the screen behind it is already white. */
+  margin-top: -56vh;
   /* Deliberately not clipped: the booth starts its entrance on the (now
      white) television screen above the section's top edge, so it has to be
      allowed to travel outside this box. */
@@ -1040,14 +1040,17 @@ body {
 .contact-headlines {
   position: relative;
   /* Copy owns the left column so the booth gets a clean right column; the
-     two never overlap on the sheet. */
+     two never overlap on the sheet. The width and the type size are paired:
+     "MARQUEE MOON" measures ~10.3× the font size, so 70vw of room allows up
+     to 6.6vw type without a line ever wrapping mid-scrub (a rewrap would make
+     the whole block jump while the text is rising). */
   z-index: 2;
-  max-width: 60vw;
+  max-width: 70vw;
 }
 
 .contact-line {
   overflow: hidden;
-  font-size: clamp(34px, 6.6vw, 128px);
+  font-size: clamp(32px, 6.2vw, 118px);
   font-weight: 500;
   line-height: 0.94;
   text-transform: uppercase;
@@ -1570,8 +1573,8 @@ body {
   }
 
   .tv-phone-spacer { height: 90vh; }
-  .tv-exit-spacer { height: 118vh; }
-  .contact { margin-top: -20vh; }
+  .tv-exit-spacer { height: 96vh; }
+  .contact { margin-top: -40vh; }
 
   .contact-inner {
     padding: 12vh var(--gutter) 28px;

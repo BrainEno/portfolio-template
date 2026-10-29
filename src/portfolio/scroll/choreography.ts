@@ -357,67 +357,59 @@ function television(scope: HTMLElement, opts: ChoreographyOptions, desktop: bool
     },
   });
 
-  // Exit: the wordmark (the handle on the glass) swells as if the camera were
-  // pushing into it, blurs away, the scanline filter melts off the tube, the
-  // phosphor burns out to white and the white frame hands over to the contact
-  // sheet. Everything is scroll-scrubbed, so scrolling back up rewinds it.
+  // Exit, in four overlapping beats so there is never a still white screen:
+  //   1. the wordmark swells (a camera push into the glass) and blurs away,
+  //   2. the stripe filter and the glass sheen melt off the tube,
+  //   3. the tube burns out to white while the box is still pushing in,
+  //   4. the contact sheet's white background fades in under the copy, which
+  //      is already rising out of the bottom edge of the frame.
+  // Everything is scroll-scrubbed, so scrolling back up rewinds it exactly.
   exitTl
-    .to(".tv-screen-base", { ...SCREEN.blank, duration: 0.1 }, 0)
-    .to(".tv-number", { scale: desktop ? 4.6 : 3.2, duration: 0.34, ease: "power2.in" }, 0)
-    .to(".tv-number", { autoAlpha: 0, filter: "blur(14px)", duration: 0.22, ease: "power1.in" }, 0.08)
-    // The stripe filter melts off the tube before the phosphor burns out.
-    .to(".tv-scanlines", { autoAlpha: 0, duration: 0.22, ease: "power1.inOut" }, 0.08)
-    .to(".tv-glass", { autoAlpha: 0, duration: 0.22, ease: "power1.inOut" }, 0.1)
-    .to(".tv-box", { scale: 1.22, rotation: -3, duration: 0.16, ease: "sine.inOut" }, 0.08)
-    .to(".tv-box", { scale: 6.5, rotation: -8, duration: 0.36, ease: "power2.in" }, 0.12)
-    // The burn-out starts while the push is still on screen; the glass keeps
-    // shrinking the white into a shrinking window instead of revealing it all
-    // at once.
-    .to(".tv-screen-base", { ...SCREEN.white, duration: 0.18, ease: "power1.in" }, 0.28)
-    // Full white by 60% of the exit. The contact sheet's leading edge is still
-    // ~30vh below the viewport at that point, so the hand-over is white on
-    // white and the contact copy/booth then grow out of that white frame.
-    .fromTo(".tv-whiteout", { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.3, ease: "power1.in" }, 0.3)
-    .to(".tv-whiteout", { autoAlpha: 1, duration: 0.4 }, 0.6);
+    .to(".tv-screen-base", { ...SCREEN.blank, duration: 0.08 }, 0)
+    .to(".tv-number", { scale: desktop ? 4.8 : 3.2, duration: 0.26, ease: "power2.in" }, 0)
+    .to(".tv-number", { autoAlpha: 0, filter: "blur(16px)", duration: 0.18, ease: "power1.in" }, 0.06)
+    .to(".tv-scanlines", { autoAlpha: 0, duration: 0.16, ease: "power1.inOut" }, 0.04)
+    // The glass goes first so the burn-out is clean white, not a grey tube.
+    .to(".tv-glass", { autoAlpha: 0, duration: 0.14, ease: "power1.in" }, 0.02)
+    .to(".tv-box", { scale: 1.2, rotation: -2.5, duration: 0.12, ease: "sine.inOut" }, 0.06)
+    // The push runs over a quarter of the exit (~270px of scroll) so a single
+    // wheel tick cannot skip it; the tube whitens early in the push, so what
+    // fills the frame is a growing white flash rather than a grey slab.
+    .to(".tv-box", { scale: 5.6, rotation: -6, duration: 0.3, ease: "power2.in" }, 0.14)
+    .to(".tv-screen-base", { ...SCREEN.white, duration: 0.16, ease: "power1.in" }, 0.2)
+    .fromTo(".tv-whiteout", { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.18, ease: "power1.in" }, 0.3)
+    // The contact sheet materialises in the same white (instead of sliding in
+    // as a white card over a dark scene); its copy is already rising by then.
+    .fromTo(
+      ".contact",
+      { backgroundColor: "rgba(255,255,255,0)" },
+      { backgroundColor: "rgba(255,255,255,1)", duration: 0.16, ease: "power1.inOut" },
+      0.3
+    )
+    .to(".tv-whiteout", { autoAlpha: 1, duration: 0.62 }, 0.42);
 }
 
 function contact(scope: HTMLElement, desktop: boolean, reduce: boolean) {
-  gsap.from(".contact-line-text", {
-    yPercent: 110,
-    duration: 1.3,
-    ease: "expo.out",
-    stagger: 0.09,
-    scrollTrigger: { trigger: ".contact-headlines", start: "top 96%", toggleActions: "play none none reverse" },
-  });
-
   if (reduce) {
     gsap.set(".contact-booth", { autoAlpha: 1, clearProps: "transform" });
     gsap.set(".contact-booth-shadow", { autoAlpha: 1 });
+    gsap.set(".contact-line-text", { clearProps: "transform" });
   } else {
-    // The booth grows out of the television: at the start of the timeline the
-    // contact sheet's top edge is exactly at the bottom of the viewport, so
-    // the offsets below put the (tiny) booth on the middle of the screen, the
-    // spot the tube just burned white. From there it scales up, makes one
-    // full turn and lands in the right column, then keeps drifting slowly to
-    // the left while the section is in view. The renderer adds the endless
-    // slow self-rotation on top of this.
     const booth = scope.querySelector<HTMLElement>(".contact-booth");
     const vw = () => window.innerWidth;
     const vh = () => window.innerHeight;
-    const fromScreen = () => {
-      if (!booth) return { x: 0, y: 0 };
-      const cx = booth.offsetLeft + booth.offsetWidth / 2;
-      const cy = booth.offsetTop + booth.offsetHeight / 2;
-      return { x: Math.round(vw() / 2 - cx), y: Math.round(vh() / 2 - (vh() + cy)) };
-    };
 
+    // Booth: a single parabola from the right edge. It enters below the
+    // horizon on the right, sweeps up and over the resting height, then drops
+    // into place while making one full turn — the arc (rather than a straight
+    // slide or a scale-up) is what makes it feel like it was tossed in.
     const tl = gsap.timeline({
       defaults: { ease: "none" },
       scrollTrigger: {
         trigger: "#contact",
-        start: "top bottom",
-        end: "bottom top",
-        scrub: 0.6,
+        start: "top 92%",
+        end: "top -8%",
+        scrub: 0.7,
         invalidateOnRefresh: true,
       },
     });
@@ -426,35 +418,63 @@ function contact(scope: HTMLElement, desktop: boolean, reduce: boolean) {
       ".contact-booth",
       {
         autoAlpha: 0,
-        scale: desktop ? 0.035 : 0.08,
-        x: () => fromScreen().x,
-        y: () => fromScreen().y,
-        z: desktop ? -420 : 0,
-        rotationY: 0,
-        transformPerspective: 1500,
-        transformOrigin: "50% 50%",
+        x: () => vw() * 0.95,
+        y: () => vh() * 0.26,
+        rotationY: -24,
+        scale: desktop ? 0.94 : 0.96,
+        transformPerspective: 1700,
+        transformOrigin: "50% 60%",
       },
-      { autoAlpha: 1, scale: desktop ? 0.2 : 0.38, rotationY: -64, duration: 0.16, ease: "power2.out" },
+      {
+        autoAlpha: 1,
+        x: () => vw() * 0.62,
+        y: () => vh() * 0.1,
+        rotationY: -150,
+        scale: 0.97,
+        duration: 0.24,
+        ease: "power1.out",
+      },
       0
     )
+      // The arc: x keeps sliding left while y settles first, so the path bends
+      // (comes in from the right and below, rises over the copy, then drops
+      // into the column) instead of running as a straight diagonal.
       .to(
         ".contact-booth",
-        { scale: 1.015, x: 0, y: 0, z: 0, rotationY: -326, duration: 0.6, ease: "power2.inOut" },
-        0.06
+        { x: () => vw() * 0.24, y: () => -vh() * 0.012, rotationY: -300, scale: 1, duration: 0.34, ease: "sine.out" },
+        0.24
       )
-      // One clean revolution, slightly overshooting before it settles.
-      .to(".contact-booth", { scale: 1, rotationY: -360, duration: 0.14, ease: "power1.out" }, 0.66)
-      // …then the small leftward settle the section is asking for.
-      .to(".contact-booth", { x: () => -vw() * 0.022, duration: 0.16, ease: "sine.inOut" }, 0.78)
-      .to(".contact-booth", { x: () => -vw() * 0.05, duration: 1.06, ease: "none" }, 0.94)
+      .to(".contact-booth", { x: 0, y: 0, rotationY: -360, duration: 0.24, ease: "power1.out" }, 0.58)
+      // …then the slow leftward drift the section is asking for.
+      .to(".contact-booth", { x: () => -vw() * 0.05, duration: 0.42 }, 0.82)
       .fromTo(
         ".contact-booth-shadow",
-        { autoAlpha: 0, scale: 0.45 },
-        { autoAlpha: 1, scale: 1, duration: 0.22, ease: "power2.out" },
-        0.46
+        { autoAlpha: 0, scale: 0.4 },
+        { autoAlpha: 1, scale: 1, duration: 0.3, ease: "power2.out" },
+        0.52
+      );
+
+    // Copy: the three lines rise out of their masks one after another while
+    // the white frame is still arriving, so the section is never an empty
+    // white page.
+    gsap
+      .timeline({
+        scrollTrigger: {
+          trigger: "#contact",
+          // Starts one line-height earlier than the TV push so the first line
+          // is already rising while the white frame is still opening up.
+          start: "top 98%",
+          end: "top 16%",
+          scrub: 0.5,
+        },
+      })
+      .fromTo(
+        ".contact-line-text",
+        { yPercent: 112 },
+        { yPercent: 0, duration: 1, ease: "power2.out", stagger: 0.18 },
+        0
       )
-      // The copy drifts against the booth for a little depth.
-      .fromTo(".contact-headlines", { y: desktop ? "4.5vh" : 26 }, { y: desktop ? "-1.5vh" : -8, duration: 0.9 }, 0.1);
+      .fromTo(".contact-headlines", { autoAlpha: 0.001 }, { autoAlpha: 1, duration: 0.28 }, 0);
   }
 
   gsap.from(".contact-footer > *", {

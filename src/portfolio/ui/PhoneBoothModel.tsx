@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import type { BoothHandle } from "../three/booth";
 
 type Props = {
@@ -20,8 +20,6 @@ type Props = {
  */
 export function PhoneBoothModel({ src, fallback, spin = 0.42 }: Props) {
   const hostRef = useRef<HTMLDivElement>(null);
-  const [ready, setReady] = useState(false);
-  const [failed, setFailed] = useState(false);
 
   useEffect(() => {
     const host = hostRef.current;
@@ -44,11 +42,15 @@ export function PhoneBoothModel({ src, fallback, spin = 0.42 }: Props) {
           return;
         }
         handle = mounted;
-        setReady(true);
+        // Written straight to the DOM instead of through state: the canvas is
+        // already painted at this point and the cutout underneath must be
+        // hidden in the same frame (a React re-render would let one frame of
+        // the flat image show through the model).
+        host.dataset.ready = "true";
       } catch (error) {
         // A failed decode / unsupported WebGL must not break the section.
         console.warn("[booth] falling back to the cutout image", error);
-        if (!disposed) setFailed(true);
+        if (!disposed) host.dataset.fallback = "true";
       }
     };
 
@@ -84,13 +86,7 @@ export function PhoneBoothModel({ src, fallback, spin = 0.42 }: Props) {
   }, [src, spin]);
 
   return (
-    <div
-      ref={hostRef}
-      className="contact-booth-canvas"
-      data-ready={ready ? "true" : "false"}
-      data-fallback={failed ? "true" : "false"}
-      aria-hidden="true"
-    >
+    <div ref={hostRef} className="contact-booth-canvas" aria-hidden="true">
       <img className="contact-booth-still" src={fallback} alt="" loading="lazy" decoding="async" />
     </div>
   );

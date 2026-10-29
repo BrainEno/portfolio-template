@@ -69,26 +69,37 @@ Hero、肖像（含重影层）、画廊、两张点缀图、电视封面、作�
 
 ## 6. 转场与 Contact 区动效
 
-**电视退场 → 白场**（`scroll/choreography.ts#television` 的 `exitTl`，全部绑定滚动 scrub）：
-`@BrainEno` 字样先放大（模拟镜头推进）并虚化消失，随后独立的 `.tv-scanlines` 条纹层淡出（条纹滤镜「消失」）、
-玻璃光泽层 `.tv-glass` 退场，屏幕渐变切换到 `SCREEN.white`，`.tv-whiteout` 在第 30% 处开始铺满整屏。
-白场在退场段 60% 前完成，而此时 contact 前沿还在视口下方约 30vh——交接是「白对白」，没有卡片滑动感。
+**电视退场 → 白场 → Contact**（`scroll/choreography.ts#television` 的 `exitTl` + `contact()`，全部绑定滚动 scrub）。
+退场的每一拍都是重叠的，中间没有「停住的白屏」：
 
-**Contact 出现**：`.contact` 仍用 `margin-top: -28vh`（移动端 -20vh）上拉叠在退场段之上，但**不再有圆角前沿与上投影**
-（原先那张「纸」的边界看起来割裂），`.contact` 与 `.contact-inner` 也不做 `overflow: hidden`——因为电话亭的起点在
-section 上沿之外的电视屏幕里。
+1. `@BrainEno` 字样放大（模拟镜头推进）并虚化消失；
+2. 独立的 `.tv-scanlines` 条纹层与 `.tv-glass` 光泽层同时淡出（条纹滤镜「消失」）；
+3. `.tv-box` 用 30% 的退场距离推进到 `scale 5.6`（约 270px 滚动，一次滚轮不会跳帧），屏幕渐变在推进过程中就切成纯白，
+   `.tv-whiteout` 紧随其后——看到的是「从电视里膨胀出来的白色闪光」，而不是一块灰色屏幕。
+4. `.contact` 的 `margin-top: -56vh`（移动端 `-40vh`）让它压进退场段：它的背景色由 `rgba(255,255,255,0)` 淡入成白色，
+   所以白色是「淡进来」的，不是一张白纸滑过黑场。
+5. 与此同时标题三行 `contact-line-text` 已从各自的 mask 里自下而上 stagger 升起（触发点在 `#contact` top 95%→12%），
+   电话亭也已经从右侧飞入——**白场结束前画面里已经有内容**。
 
-**电话亭（3D 模型）**：
-- `public/gltfs/telephone.glb` 由 `scripts/optimize-booth-model.py` 从原始 `telephone.gltf`（38 MB，buffer 以 base64 内嵌）生成：
-  几何数据原样保留，9 张 2048² PNG 纹理重编码为 baseColor 1024² / normal 1024² / metallicRoughness 512² JPEG，产物约 2.15 MB。
-- `ui/PhoneBoothModel.tsx` 在 contact 进入前 1.5 屏时（IntersectionObserver + 动态 `import()`）才去加载 `three` 与模型，
-  因此首屏不含 three；离开视口或标签页隐藏时暂停渲染循环；加载失败 / 无 WebGL 时回落到抠图。
-- `three/booth.ts` 负责舞台：PMREM 房间环境光 + 三点布光、按包围盒归一化（脚底落在 y=0、高度缩放为 1）、
-  缓慢自转（`0.42 rad/s`）、鼠标拖拽加减速、`ResizeObserver` 重新取景。
-- `scroll/choreography.ts#contact` 的 scrub 时间线驱动外层 `.contact-booth`：起始 `scale .035 · z -420 · autoAlpha 0`，
-  位置经 `fromScreen()` 计算到**视口中心**（即电视刚刚烧白的那个点），随后放大、一次性旋转 `-360°`（`rotationY` 全周）、
-  落到右栏，再持续向左漂移 `-5vw`；标题组做反向视差。两者分工：GSAP 管外层变换，渲染器管内层自转与拖拽，互不打架。
-- `prefers-reduced-motion` 下跳过入场时间线，模型静态显示且不自转。
+**Contact 排版**：`.contact` 不再有圆角前沿与上投影，也不做 `overflow: hidden`（电话亭要从 section 边界之外入场）。
+
+**电话亭（3D 模型）入场**：一条抛物线从右边缘飞入，而不是直线位移或从小到大缩放：
+
+- 起点：`x +95vw · y +26vh · rotationY -24° · scale .94`（在屏幕右下角之外）；
+- 第一段 `x → +62vw · y → +10vh · rotationY -150°`（几乎水平地掠过，先横后竖，形成弧）；
+- 第二段 `x → +24vw · y → -1.2vh`（越过静止高度一点点，弧顶）；
+- 第三段 `x → 0 · y → 0 · rotationY -360°` 落位，随后继续缓慢向左漂移 `-5vw`；
+- 全程有一次完整的 `rotationY` 360° 自转，渲染器在此之上再叠加持续的慢速自转；
+- 比例基本保持（`0.94 → 1`），不再出现「从一个小点放大」的观感。
+
+**模型与渲染**：
+- `public/gltfs/telephone.glb` 由 `scripts/optimize-booth-model.py` 从原始 `telephone.gltf`（38 MB，buffer base64 内嵌）生成：
+  几何原样保留，9 张 2048² PNG 重编码为 baseColor 1024² / normal 1024² / metallicRoughness 512² JPEG，产物约 2.15 MB。
+- `ui/PhoneBoothModel.tsx` 在 contact 进入前 1.5 屏时（IntersectionObserver + 动态 `import()`）才加载 `three` 与模型；
+  离开视口或标签页隐藏时暂停渲染；加载失败 / 无 WebGL 时回落到抠图。
+- `three/booth.ts`：PMREM 房间环境光 + 三点布光、按包围盒归一化（脚底 y=0、高度 1）、慢速自转（0.42 rad/s）、
+  鼠标拖拽带惯性、`ResizeObserver` 重新取景。GSAP 管外层 `.contact-booth` 的轨迹，渲染器管内层自转，互不打架。
+- `prefers-reduced-motion` 下跳过入场时间线与自转，模型静态显示。
 
 ## 7. 已知限制 / 后续
 
