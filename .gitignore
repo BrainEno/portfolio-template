@@ -1,0 +1,26 @@
+# dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# next.js
+.next/
+out/
+build/
+next-env.d.ts
+
+# env / secrets — never commit real credentials
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# tooling / caches
+.export-stage/
+.qa/
+.qa-tmp/
+.vercel
+.open-next/
+.wrangler/
+*.tsbuildinfo
+.DS_Store

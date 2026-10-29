@@ -1,0 +1,7 @@
+node_modules
+/build
+/.react-router
+/.netlify
+/.data
+.env
+.DS_Store

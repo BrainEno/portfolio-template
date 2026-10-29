@@ -1,0 +1,23 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "braineno-portfolio",
+  "main": ".open-next/worker.js",
+  "compatibility_date": "2026-10-29",
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "assets": {
+    "directory": ".open-next/assets",
+    "binding": "ASSETS"
+  },
+  "observability": {
+    "enabled": true
+  }
+
+  // Simplest PostgreSQL setup:
+  //   npx wrangler secret put DATABASE_URL
+  //
+  // Recommended at scale: create a Hyperdrive and append this block (replace
+  // the id). The runtime automatically prefers HYPERDRIVE.connectionString:
+  // ,"hyperdrive": [
+  //   { "binding": "HYPERDRIVE", "id": "YOUR_HYPERDRIVE_ID" }
+  // ]
+}
