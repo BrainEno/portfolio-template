@@ -1161,16 +1161,20 @@ body {
    the drag gesture on the canvas. */
 .contact-booth {
   position: absolute;
-  /* Above the headline hit-area so the canvas can receive drag gestures; the
-     marquee (later in DOM, z-index 3) still wins at the floor. */
-  z-index: 3;
-  /* No transform of its own: GSAP owns `transform` for the entrance, so the
-     box is centred with margins instead of translateY(-50%). */
-  /* Anchored by its bottom edge so it clears the marquee, and tall enough
-     that its drawn base sits level with (just above) the headline's baseline. */
-  bottom: 24svh;
-  right: 4vw;
-  height: min(78svh, 640px);
+  /* Above the headline hit-area so the canvas can receive drag gestures, and
+     above the marquee too: the plinth stands on the floor rule, so the strip
+     has to pass behind it instead of cropping it. */
+  z-index: 4;
+  /* Stretched between the top edge and the sheet's floor rule rather than a
+     fixed height, so the booth takes whatever vertical room the sheet actually
+     has: the crown touches the top margin, the plinth stands on the rule, and
+     the width follows from the 9:16 silhouette aspect. This is the largest the
+     booth can be before the marquee starts eating the base. It also carries no
+     transform of its own — GSAP owns `transform` for the entrance. */
+  top: 0;
+  bottom: 13.7svh;
+  right: 7.5vw;
+  height: auto;
   aspect-ratio: 9 / 16;
   will-change: transform;
 }

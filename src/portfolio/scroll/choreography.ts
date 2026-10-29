@@ -408,51 +408,53 @@ function contact(scope: HTMLElement, desktop: boolean, reduce: boolean) {
         defaults: { ease: "none" },
         scrollTrigger: {
           trigger: "#contact",
-          start: "top 92%",
-          end: "top -10%",
+          start: "top 100%",
+          end: "top -4%",
           scrub: 0.7,
           invalidateOnRefresh: true,
         },
       })
-      // 1 — launches in from beyond the right edge, already rising. No CSS
-      // `rotationY`: rotating the canvas in 3D foreshortens it and the booth
-      // reads as a flat, squashed card. The model's own slow spin (in WebGL)
-      // is what turns it, so the volume is never lost.
+      // The flight is a quarter-arc thrown out of the bottom-right corner: it
+      // climbs almost straight up first, then sweeps left along the top of the
+      // sheet, which is what makes the path bow towards the upper left instead
+      // of cutting the diagonal. Vertical progress leads horizontal progress for
+      // the whole of the flight, so the chord is never visible.
       .fromTo(
         ".contact-booth",
         {
           autoAlpha: 0,
-          x: () => vw() * 0.78,
-          y: () => vh() * 0.32,
-          rotation: -7,
-          scale: desktop ? 0.88 : 0.92,
+          x: () => vw() * 0.92,
+          y: () => vh() * 0.46,
+          rotation: 7,
+          scale: desktop ? 0.88 : 0.9,
           transformOrigin: "50% 60%",
         },
         {
           autoAlpha: 1,
-          x: () => vw() * 0.2,
-          y: () => vh() * 0.04,
-          rotation: -3,
-          scale: 0.95,
-          duration: 0.3,
+          x: () => vw() * 0.62,
+          y: () => vh() * 0.08,
+          rotation: 4.5,
+          scale: desktop ? 0.93 : 0.94,
+          duration: 0.32,
           ease: "power1.out",
         },
         0
       )
-      // 2 — the apex: higher than where it lands, still travelling left.
-      .to(".contact-booth", { y: () => -vh() * 0.12, duration: 0.3, ease: "power2.out" }, 0.3)
-      .to(".contact-booth", { rotation: 1.5, scale: 1.02, duration: 0.3, ease: "sine.inOut" }, 0.3)
-      // 3 — gravity takes over and drops it into the right column.
-      .to(".contact-booth", { y: 0, duration: 0.28, ease: "power2.in" }, 0.6)
-      .to(".contact-booth", { x: 0, duration: 0.34, ease: "power2.out" }, 0.3)
-      .to(".contact-booth", { rotation: 0, scale: 1, duration: 0.34, ease: "power2.out" }, 0.6)
-      // 4 — a slow leftward drift to its resting spot.
-      .to(".contact-booth", { x: () => -vw() * 0.015, duration: 0.3, ease: "none" }, 0.7)
+      .to(
+        ".contact-booth",
+        { x: 0, duration: 0.5, ease: "power1.inOut" },
+        0.32
+      )
+      .to(
+        ".contact-booth",
+        { y: 0, rotation: 0, scale: 1, duration: 0.5, ease: "power2.out" },
+        0.32
+      )
       .fromTo(
         ".contact-booth-shadow",
-        { autoAlpha: 0, scale: 0.4 },
-        { autoAlpha: 1, scale: 1, duration: 0.3, ease: "power2.out" },
-        0.55
+        { autoAlpha: 0, scale: 0.35 },
+        { autoAlpha: 1, scale: 1, duration: 0.34, ease: "power2.out" },
+        0.56
       );
 
     // Copy: one solid block that slides up out of the television as the white
@@ -463,8 +465,8 @@ function contact(scope: HTMLElement, desktop: boolean, reduce: boolean) {
       .timeline({
         scrollTrigger: {
           trigger: "#contact",
-          start: "top 98%",
-          end: "top 34%",
+          start: "top 106%",
+          end: "top 38%",
           scrub: 0.55,
           invalidateOnRefresh: true,
         },

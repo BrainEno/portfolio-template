@@ -62,7 +62,7 @@ const FOV = 32;
  * canvas is transparent over a white page the slice read as the model being
  * cut by a white slab.
  */
-const SILHOUETTE_FILL = 0.88;
+const SILHOUETTE_FILL = 0.97;
 /** Camera height and the point it looks at, in the model's normalised units. */
 const CAMERA_HEIGHT = 0.6;
 
@@ -153,12 +153,11 @@ function retypeLettering(
   if (size[u] <= 0 || size[v] <= 0) return;
 
 
-  // The source quads are a thin strip through the middle of the digits, so the
-  // plate is grown off that strip until it covers the whole baked number and
-  // sits inside the recessed plaque on the door.
+  // The digits themselves are switched off, so the plate is free to take a
+  // printed-label proportion rather than the thin strip the source quad was.
   const axisScale = mesh.matrixWorld.getMaxScaleOnAxis();
-  const worldWidth = size[u] * axisScale * 1.2;
-  const worldHeight = size[v] * axisScale * 4.9;
+  const worldWidth = size[u] * axisScale;
+  const worldHeight = worldWidth / 3.1;
   if (worldWidth <= 0 || worldHeight <= 0) return;
 
   const texture = makePlateTexture(text, worldWidth / worldHeight, anisotropy);
@@ -171,6 +170,11 @@ function retypeLettering(
   const outward = new Vector3(worldCenter.x - modelCenter.x, 0, worldCenter.z - modelCenter.z);
   if (outward.lengthSq() < 1e-10) return;
   outward.normalize();
+  // The quads sit a little off-centre on their faces, so the raw direction is a
+  // few degrees off the panel normal. Snapping it to the dominant axis keeps
+  // every plate square to its panel instead of slightly rolled.
+  if (Math.abs(outward.x) >= Math.abs(outward.z)) outward.set(Math.sign(outward.x) || 1, 0, 0);
+  else outward.set(0, 0, Math.sign(outward.z) || 1);
 
   // Stage-local space: the stage carries the normalising uniform scale, so
   // sizes are converted once and everything else is a plain direction.
@@ -196,8 +200,11 @@ function retypeLettering(
     })
   );
   plate.quaternion.setFromRotationMatrix(new Matrix4().makeBasis(right, up, outward));
-  plate.position.copy(centerLocal).addScaledVector(outward, 0.004 * unit);
+  plate.position.copy(centerLocal).addScaledVector(outward, 0.006 * unit);
   plate.renderOrder = 6;
+  // Parented to the stage, not to the quad: the quad itself is hidden so the
+  // baked digits leave the render entirely, and a child of a hidden object is
+  // hidden with it.
   stage.add(plate);
 }
 
@@ -262,9 +269,11 @@ export async function mountBooth(host: HTMLElement, options: BoothOptions): Prom
       if (standard.normalMap) standard.normalMap.anisotropy = maxAnisotropy;
       if (standard.metalnessMap) standard.metalnessMap.anisotropy = maxAnisotropy;
     }
-    // The four phone-number quads are the only untextured lettering meshes.
+    // The four phone-number quads are the only untextured lettering meshes, one
+    // per face of the booth (`Text`, `Text001`, `Text002`, `Text003` — glTF
+    // sanitises the dotted node names on load).
     const untextured = materials.every((material) => !(material as MeshStandardMaterial).map);
-    if (untextured && /^Text\d*$/.test(mesh.name)) lettering.push(mesh);
+    if (untextured && /^Text(\d+)?$/.test(mesh.name)) lettering.push(mesh);
   });
 
 
@@ -278,6 +287,10 @@ export async function mountBooth(host: HTMLElement, options: BoothOptions): Prom
   stage.add(model);
   stage.scale.setScalar(1 / Math.max(size.y, 1e-4));
   stage.position.y = 0.5;
+
+  // The source lettering is switched off outright — the number is removed from
+  // the render, not merely covered up.
+  for (const mesh of lettering) mesh.visible = false;
 
   if (options.plateText) {
     scene.updateMatrixWorld(true);
@@ -301,7 +314,7 @@ export async function mountBooth(host: HTMLElement, options: BoothOptions): Prom
     silhouetteCorners.length = 0;
     model.traverse((object) => {
       const mesh = object as Mesh;
-      if (!mesh.isMesh || !mesh.geometry) return;
+      if (!mesh.isMesh || !mesh.geometry || !mesh.visible) return;
       const materials: Material[] = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
       if (materials.every((material) => !material.visible)) return;
       if (!mesh.geometry.boundingBox) mesh.geometry.computeBoundingBox();
