@@ -16,6 +16,7 @@ const nextConfig: NextConfig = {
     const longCache = [{ key: "Cache-Control", value: "public, max-age=31536000, immutable" }];
     return [
       { source: "/images/:path*", headers: longCache },
+      { source: "/gltfs/:path*", headers: longCache },
       { source: "/icons/:path*", headers: longCache },
       { source: "/sw.js", headers: [{ key: "Cache-Control", value: "no-cache, max-age=0" }, { key: "Service-Worker-Allowed", value: "/" }] },
       {

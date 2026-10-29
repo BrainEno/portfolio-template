@@ -22,10 +22,10 @@ P1（体验与健壮性）→ P2（长期演进）。反馈新问题时请附：
 4. **无数据库 `/admin` 直接进入**：`GET /api/session` 在 demo mode 返回
    `authenticated:true`，不再有临时密码门槛；草稿仍只在本浏览器，因此没有服务器数据暴露。
    连库后自动恢复密码保护并忽略 mock/localStorage。
-5. **Contact 伪 3D**（仅 contact）：电话亭分成 GSAP 入场 / idle float /
-   Pointer Events 拖拽三层 transform；鼠标拖动产生 perspective rotateX/rotateY，
-   松手以缓动归正。hover 叠加红木色电话亭副本与 mask 木纹层；标题 hover 改为
-   accent 扫描带 + 文字中段错位切片，不再使用整行填红。
+5. **Contact 3D 电话亭**（仅 contact）：电话亭改为上传的 glTF 模型（`three` 按需动态加载，
+   见 `docs/ARCHITECTURE.md` 第 6 节）；GSAP 负责外层「从电视白场里放大 + 整周自转 + 向左漂移」的
+   滚动时间线，渲染器负责慢速自转与鼠标拖拽加减速。标题 hover 保留 accent 扫描带 +
+   文字中段错位切片；电视退场改为独立条纹层淡出 + 烧白，contact 去掉圆角前沿与上投影。
 6. **任意比例图片稳定层**：hero、肖像、gallery rail、accent image 均由
    固定 frame + `object-fit:cover` + `contain:layout paint` 接管尺寸；用 10:1、1:10、
    1:1 三种测试图替换后，三个 frame 的像素尺寸前后一致。

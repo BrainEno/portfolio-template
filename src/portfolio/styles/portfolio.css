@@ -719,6 +719,11 @@ body {
   z-index: 1;
   background: #020202;
   transform: translateZ(0);
+  /* `clip` (unlike `hidden`) does not force a scroll container, so the
+     screen crop still travels with the zoomed `.tv-box` instead of being
+     pinned to the viewport-sized stage. */
+  overflow: hidden;
+  overflow: clip;
 }
 
 .tv-screen-base,
@@ -788,16 +793,32 @@ body {
   100% { transform: scale(1.04, 1); filter: saturate(1.12) contrast(1.06) brightness(0.88); }
 }
 
-/* Persistent glass: scanlines + sheen + edge falloff that never fade with
-   the showreel, so the powered-down tube keeps its material through the
-   phone beat and the exit zoom instead of turning into a black hole. */
-.tv-glass {
+/* Scanlines live on their own layer so the exit can strip the filter away
+   independently of the glass sheen: the stripes melt, the picture goes white,
+   and the contact section takes over from that white. */
+.tv-scanlines {
   position: absolute;
   inset: 0;
   z-index: 3;
   pointer-events: none;
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0.22) 0,
+    rgba(0, 0, 0, 0.22) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+}
+
+/* Persistent glass: sheen + edge falloff that never fade with the showreel,
+   so the powered-down tube keeps its material through the phone beat instead
+   of turning into a black hole. */
+.tv-glass {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  pointer-events: none;
   background:
-    repeating-linear-gradient(to bottom, rgba(0, 0, 0, 0.2) 0, rgba(0, 0, 0, 0.2) 1px, transparent 1px, transparent 3px),
     radial-gradient(ellipse at 50% 0%, rgba(255, 252, 240, 0.1), transparent 42%),
     linear-gradient(103deg, transparent 60%, rgba(202, 255, 229, 0.08) 80%, transparent 90%),
     radial-gradient(ellipse at 50% 46%, transparent 52%, rgba(0, 0, 0, 0.22) 82%, rgba(0, 0, 0, 0.5) 115%);
@@ -984,21 +1005,27 @@ body {
 }
 
 .tv-exit-spacer {
-  height: 170vh;
+  /* Long enough for the wordmark swell, the stripe melt and the burn-out to
+     white — and short enough that the white frame hands over to the contact
+     sheet instead of leaving a stretch of empty white. */
+  height: 148vh;
 }
 
 /* Contact ------------------------------------------------------------ */
 .contact {
   position: relative;
   z-index: 2;
-  /* The sheet rises over the end of the television zoom (no blank beat):
-     it overlaps the exit spacer by 28vh and has a rounded leading edge. */
+  /* The sheet rises over the end of the television zoom. Because the
+     television exit already ends in a full white frame, the top of this
+     section is plain white on white: no rounded edge, no drop shadow, so the
+     contact layout appears to grow straight out of the transition instead of
+     sliding in as a separate card. */
   margin-top: -28vh;
-  border-radius: clamp(22px, 3.6vw, 56px) clamp(22px, 3.6vw, 56px) 0 0;
-  overflow: hidden;
+  /* Deliberately not clipped: the booth starts its entrance on the (now
+     white) television screen above the section's top edge, so it has to be
+     allowed to travel outside this box. */
   background: var(--paper);
   color: #000;
-  box-shadow: 0 -2.5vw 6vw rgba(0, 0, 0, 0.55);
 }
 
 .contact-inner {
@@ -1008,22 +1035,24 @@ body {
   min-height: 100vh;
   min-height: 100svh;
   padding: 9svh 4.5vw 4svh;
-  overflow: hidden;
 }
 
 .contact-headlines {
   position: relative;
+  /* Copy owns the left column so the booth gets a clean right column; the
+     two never overlap on the sheet. */
   z-index: 2;
+  max-width: 60vw;
 }
 
 .contact-line {
   overflow: hidden;
-  font-size: clamp(40px, 8.6vw, 172px);
+  font-size: clamp(34px, 6.6vw, 128px);
   font-weight: 500;
   line-height: 0.94;
   text-transform: uppercase;
   color: transparent;
-  -webkit-text-stroke: clamp(1.5px, 0.22vw, 4px) #000;
+  -webkit-text-stroke: clamp(1.5px, 0.2vw, 3.5px) #000;
 }
 
 .contact-line + .contact-line {
@@ -1110,36 +1139,30 @@ body {
     transform: translateX(0.075em);
   }
 
-  /* The booth answers the typography: leaning in when a line or the running
-     headline is pointed at. */
-  #contact:has(.contact-line:hover) .contact-booth-inner {
-    transform: translateY(-1.2vh) rotate(-1.6deg) scale(1.035);
-  }
-
-  #contact:has(.contact-marquee:hover) .contact-booth-inner {
-    transform: translateY(-0.8vh) rotate(1.4deg) scale(1.02);
-  }
-
   #contact:has(.contact-line:hover) .contact-booth-shadow {
-    opacity: 0.52;
-    transform: scale(1.08);
+    opacity: 0.55;
   }
 }
 
+/* The booth is a live WebGL stage now: the scroll timeline scales, spins and
+   drifts this wrapper, while the renderer handles the slow self-rotation and
+   the drag gesture on the canvas. */
 .contact-booth {
-  transform-style: preserve-3d;
   position: absolute;
-  /* Above the headline hit-area so the booth can actually receive drag
-     gestures; the marquee (later in DOM, z-index 3) still wins at the floor. */
+  /* Above the headline hit-area so the canvas can receive drag gestures; the
+     marquee (later in DOM, z-index 3) still wins at the floor. */
   z-index: 3;
-  top: 6svh;
-  right: 6vw;
-  height: min(64svh, 640px);
+  /* No transform of its own: GSAP owns `transform` for the entrance, so the
+     box is centred with margins instead of translateY(-50%). */
+  top: 50%;
+  margin-top: max(-31svh, -620px);
+  right: 5vw;
+  height: min(62svh, 620px);
   aspect-ratio: 9 / 16;
   will-change: transform;
 }
 
-/* Idle float: the booth breathes instead of sitting as a still cut-out. */
+/* Idle float: the booth breathes instead of standing perfectly still. */
 .contact-booth-float {
   position: relative;
   z-index: 2;
@@ -1150,146 +1173,66 @@ body {
   will-change: transform;
 }
 
-.contact-booth-drag {
-  --booth-rx: 0deg;
-  --booth-ry: 0deg;
-  width: 100%;
-  height: 100%;
-  cursor: grab;
-  touch-action: pan-y;
-  transform: perspective(900px) rotateX(var(--booth-rx)) rotateY(var(--booth-ry));
-  transform-style: preserve-3d;
-  transition: transform 1.25s cubic-bezier(0.16, 1, 0.3, 1);
-  will-change: transform;
-}
-
-.contact-booth-drag.is-dragging {
-  cursor: grabbing;
-  transition: none;
-}
-
-.contact-booth-inner {
+.contact-booth-canvas {
   position: relative;
   width: 100%;
   height: 100%;
-  transform-origin: 50% 92%;
-  transform-style: preserve-3d;
-  transition: transform 0.9s var(--ease-out), filter 0.8s ease;
-  will-change: transform;
 }
 
-.contact-booth img {
+/* Flat cutout underneath the canvas: shown until the model is parsed, and
+   permanently when WebGL is unavailable. Opaque white backing, so `multiply`
+   removes the backdrop instead of tracing a rectangle. */
+.contact-booth-still {
   position: absolute;
   inset: 0;
   display: block;
   width: 100%;
   height: 100%;
   object-fit: contain;
-  /* The artwork is opaque white-backed, so `multiply` is what removes the
-     backdrop; a drop-shadow would trace the rectangle instead of the booth,
-     which is why the grounding shadow is a separate ellipse. */
   mix-blend-mode: multiply;
   pointer-events: none;
   user-select: none;
+  transition: opacity 0.6s var(--ease-out);
 }
 
-.contact-booth-base {
-  z-index: 1;
-  transform: translateZ(0);
-}
-
-/* Warm red timber state: the duplicate keeps the photographic geometry (the
-   phone and door do not become a flat rectangle), while a masked grain layer
-   adds the wood cue. */
-.contact-booth-wood {
-  z-index: 2;
+.contact-booth-canvas[data-ready="true"] .contact-booth-still {
   opacity: 0;
-  filter: sepia(1) saturate(5.5) hue-rotate(312deg) brightness(0.7) contrast(1.22);
-  transform: translateZ(8px);
-  transition: opacity 0.75s var(--ease-out), filter 0.75s ease;
 }
 
-.contact-booth-grain {
+.contact-booth-webgl {
   position: absolute;
   inset: 0;
-  z-index: 3;
-  opacity: 0;
-  background:
-    repeating-linear-gradient(86deg, rgba(74, 14, 6, 0.72) 0 1px, transparent 1px 5px),
-    repeating-linear-gradient(94deg, transparent 0 13px, rgba(255, 146, 96, 0.24) 13px 14px, transparent 14px 27px);
-  mix-blend-mode: color-burn;
-  -webkit-mask-image: var(--booth-image);
-  mask-image: var(--booth-image);
-  -webkit-mask-size: contain;
-  mask-size: contain;
-  -webkit-mask-repeat: no-repeat;
-  mask-repeat: no-repeat;
-  -webkit-mask-position: center;
-  mask-position: center;
-  transform: translateZ(12px);
-  transition: opacity 0.75s var(--ease-out);
-  pointer-events: none;
+  display: block;
+  width: 100%;
+  height: 100%;
+  cursor: grab;
+  touch-action: pan-y;
+  outline: none;
 }
 
-@media (hover: hover) and (pointer: fine) {
-  .contact-booth:hover .contact-booth-wood,
-  #contact:has(.contact-line:hover) .contact-booth-wood {
-    opacity: 0.78;
-  }
-
-  .contact-booth:hover .contact-booth-grain,
-  #contact:has(.contact-line:hover) .contact-booth-grain {
-    opacity: 0.46;
-  }
-
-  .contact-booth:hover .contact-booth-shadow {
-    opacity: 0.54;
-    background: radial-gradient(ellipse at 50% 50%, rgba(118, 28, 14, 0.38), rgba(0, 0, 0, 0) 72%);
-  }
+.contact-booth-webgl.is-dragging {
+  cursor: grabbing;
 }
 
 /* Contact shadow that widens as the booth lifts. */
 .contact-booth-shadow {
   position: absolute;
   z-index: 1;
-  left: 19%;
-  bottom: -2.4%;
-  width: 62%;
-  height: 7%;
+  left: 16%;
+  bottom: -1.6%;
+  width: 68%;
+  height: 6%;
   border-radius: 50%;
-  background: radial-gradient(ellipse at 50% 50%, rgba(0, 0, 0, 0.42), rgba(0, 0, 0, 0) 72%);
+  background: radial-gradient(ellipse at 50% 50%, rgba(0, 0, 0, 0.38), rgba(0, 0, 0, 0) 72%);
   opacity: 0.4;
   filter: blur(9px);
-  animation: booth-shadow 9s ease-in-out infinite alternate;
-  transition: opacity 0.8s var(--ease-out), transform 0.8s var(--ease-out);
-}
-
-.contact-booth-glare {
-  position: absolute;
-  inset: 0;
-  z-index: 3;
-  background: linear-gradient(102deg, transparent 42%, rgba(255, 255, 255, 0.34) 50%, transparent 58%);
-  opacity: 0;
-  transform: translateX(-32%);
-  mix-blend-mode: screen;
-  pointer-events: none;
-  animation: booth-glare 9s ease-in-out infinite alternate;
+  transition: opacity 0.6s var(--ease-out);
+  will-change: transform;
 }
 
 @keyframes booth-float {
   from { transform: translateY(0) rotate(0deg); }
   to { transform: translateY(-1.1vh) rotate(0.7deg); }
-}
-
-@keyframes booth-shadow {
-  from { opacity: 0.34; scale: 0.96 1; }
-  to { opacity: 0.22; scale: 1.08 1; }
-}
-
-@keyframes booth-glare {
-  from { opacity: 0; transform: translateX(-38%); }
-  50% { opacity: 0.5; }
-  to { opacity: 0; transform: translateX(38%); }
 }
 
 .contact-marquee {
@@ -1627,7 +1570,7 @@ body {
   }
 
   .tv-phone-spacer { height: 90vh; }
-  .tv-exit-spacer { height: 130vh; }
+  .tv-exit-spacer { height: 118vh; }
   .contact { margin-top: -20vh; }
 
   .contact-inner {
@@ -1639,13 +1582,18 @@ body {
     -webkit-text-stroke-width: 1px;
   }
 
+  .contact-headlines {
+    max-width: none;
+  }
+
   .contact-booth {
     position: relative;
     top: auto;
     right: auto;
     align-self: flex-end;
-    height: 62vh;
-    margin: -6vh -4vw 4vh 0;
+    height: 58svh;
+    aspect-ratio: 9 / 16;
+    margin: -2vh -4vw 3vh 0;
   }
 
   .contact-marquee {
@@ -1671,12 +1619,8 @@ body {
   .tv-cover {
     animation: none;
   }
-  .contact-booth-float,
-  .contact-booth-shadow,
-  .contact-booth-glare {
-    animation: none;
-  }
   .contact-booth-float {
+    animation: none;
     transition: none;
   }
   .nav-roll > span,

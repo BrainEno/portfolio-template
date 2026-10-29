@@ -65,24 +65,36 @@
 Hero、肖像（含重影层）、画廊、两张点缀图、电视封面、作品详情页的所有图片都放在**设计固定尺寸的容器**中，
 `<img>` 绝对定位铺满、`object-fit: cover`、`max-width: none`，容器带 `overflow:hidden; contain: layout paint`。
 因此任意比例/像素的新图都只会被裁切，不会改变容器尺寸、不会触发回流，GSAP 时间线的测量值不变。
-电话亭为透明抠图，使用 `object-fit: contain`。
+电话亭改为 WebGL 模型（见第 6 节），模型未就绪时用透明抠图 `/images/phone-booth-cutout.png` 兜底，`object-fit: contain`。
 
 ## 6. 转场与 Contact 区动效
 
-**空白转场**：以前 `tv-exit-spacer` 结束后 contact 才进入，电视放大 + 白场阶段约 0.5 屏滚动是纯白空页。现在：
+**电视退场 → 白场**（`scroll/choreography.ts#television` 的 `exitTl`，全部绑定滚动 scrub）：
+`@BrainEno` 字样先放大（模拟镜头推进）并虚化消失，随后独立的 `.tv-scanlines` 条纹层淡出（条纹滤镜「消失」）、
+玻璃光泽层 `.tv-glass` 退场，屏幕渐变切换到 `SCREEN.white`，`.tv-whiteout` 在第 30% 处开始铺满整屏。
+白场在退场段 60% 前完成，而此时 contact 前沿还在视口下方约 30vh——交接是「白对白」，没有卡片滑动感。
 
-- `.contact` 用 `margin-top: -28vh`（移动端 -20vh）上拉，叠在电视退场段之上，带圆角前沿和上投影——像一张「纸」从下方升起盖住仍在放大的电视；
-- 标题行 `.contact-line-text` 的入场触发点从 `top 78%` 提前到 `top 96%`，纸一露头就开始自下而上的 `yPercent` 入场；
-- 电视的白场（whiteout）仍在后台完成，视觉上被上升的 contact 接管，不再有「等待」。
+**Contact 出现**：`.contact` 仍用 `margin-top: -28vh`（移动端 -20vh）上拉叠在退场段之上，但**不再有圆角前沿与上投影**
+（原先那张「纸」的边界看起来割裂），`.contact` 与 `.contact-inner` 也不做 `overflow: hidden`——因为电话亭的起点在
+section 上沿之外的电视屏幕里。
 
-**电话亭 3D**（仅 Contact，`scroll/choreography.ts#contact`）：绑定滚动的 scrub 时间线——
-从远处 `scale .55 · z -260 · rotationY -46° · rotationX 12°` 摆入，缓出到正面，随后轻微过冲（`scale 1.06 · rotationY 7°`）再停住；
-接地阴影同步变宽，标题组做反向视差（`y 9vh → -3vh`）。鼠标拖拽的 perspective 旋转与悬停木纹保留在内层，互不冲突。
-`prefers-reduced-motion` 下跳过 3D，仅静态显示。
+**电话亭（3D 模型）**：
+- `public/gltfs/telephone.glb` 由 `scripts/optimize-booth-model.py` 从原始 `telephone.gltf`（38 MB，buffer 以 base64 内嵌）生成：
+  几何数据原样保留，9 张 2048² PNG 纹理重编码为 baseColor 1024² / normal 1024² / metallicRoughness 512² JPEG，产物约 2.15 MB。
+- `ui/PhoneBoothModel.tsx` 在 contact 进入前 1.5 屏时（IntersectionObserver + 动态 `import()`）才去加载 `three` 与模型，
+  因此首屏不含 three；离开视口或标签页隐藏时暂停渲染循环；加载失败 / 无 WebGL 时回落到抠图。
+- `three/booth.ts` 负责舞台：PMREM 房间环境光 + 三点布光、按包围盒归一化（脚底落在 y=0、高度缩放为 1）、
+  缓慢自转（`0.42 rad/s`）、鼠标拖拽加减速、`ResizeObserver` 重新取景。
+- `scroll/choreography.ts#contact` 的 scrub 时间线驱动外层 `.contact-booth`：起始 `scale .035 · z -420 · autoAlpha 0`，
+  位置经 `fromScreen()` 计算到**视口中心**（即电视刚刚烧白的那个点），随后放大、一次性旋转 `-360°`（`rotationY` 全周）、
+  落到右栏，再持续向左漂移 `-5vw`；标题组做反向视差。两者分工：GSAP 管外层变换，渲染器管内层自转与拖拽，互不打架。
+- `prefers-reduced-motion` 下跳过入场时间线，模型静态显示且不自转。
 
 ## 7. 已知限制 / 后续
 
 - 后台界面文案为英文（含少量中文提示）；多语言化可在 `admin/` 内集中处理。
-- 电视机与电话亭为矢量原创插画，可在 Television 页签校准玻璃位置后替换为自己的照片。
+- 电视外框为矢量原创插画，可在 Television 页签校准玻璃位置后替换为自己的照片；电话亭为上传的 glTF 模型。
+- 仓库同时保留原始 `telephone.gltf`（38 MB）与优化后的 `.glb`（2.15 MB），只有 `.glb` 参与运行时加载；
+  若不需要再修改模型，可移除原始 `.gltf` 以减小仓库体积。
 - 首位访问 `/admin` 的人设置密码：生产环境请在部署后立即访问，或设置 `ADMIN_PASSWORD`。
 - Aeonik 为商业字体，未随仓库分发；放入本机或自行添加 `@font-face` 源即可，缺省回退 Inter。

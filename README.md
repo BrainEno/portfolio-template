@@ -1,6 +1,6 @@
 # Portfolio Template · 动态作品集
 
-单页滚动叙事 + 可视化后台的个人作品集模板：旋转标题、肖像长卷、电视机作品索引、电话亭联系收尾。
+单页滚动叙事 + 可视化后台的个人作品集模板：旋转标题、肖像长卷、电视机作品索引、白场转场接 3D 电话亭联系收尾。
 所有文案、照片、作品条目都能在 `/admin` 里改，**数据存 PostgreSQL**，一键备份 / 迁移。
 
 技术栈：Next.js 16（App Router）· React 19 · TypeScript · GSAP（ScrollTrigger + ScrollSmoother）· PostgreSQL（`pg`，表结构见 `src/db/schema.ts`）。
@@ -50,7 +50,8 @@ mock 数据与数据库表使用**同一份 JSON 结构**，Data 页签里的「
 | `npm run deploy` | 交互式部署菜单（docker / node / netlify / cloudflare / vercel） |
 | `npm run cf:preview` · `cf:deploy` | Cloudflare 本地预览 · 部署 |
 | `npm run db:push` | （可选）用 drizzle-kit 同步表结构；应用自身首次连库时也会自动建表 |
-| `npm run art` | 重新生成电视机 / 电话亭矢量插画 |
+| `npm run art` | 重新生成电视机矢量插画与电话亭抠图兜底 |
+| `python3 scripts/optimize-booth-model.py` | 由 `public/gltfs/telephone.gltf` 重新生成 2 MB 的 `telephone.glb`（需 ImageMagick） |
 
 ## 目录结构
 
