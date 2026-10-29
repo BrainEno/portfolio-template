@@ -1,9 +1,10 @@
 "use client";
 
-import { memo, useRef, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react";
+import { memo, type CSSProperties } from "react";
 import { t } from "../content/normalize";
 import type { Language, PortfolioContent } from "../content/types";
 import { cx } from "./cx";
+import { PhoneBoothModel } from "./PhoneBoothModel";
 
 type SectionProps<K extends keyof PortfolioContent> = {
   lang: Language;
@@ -141,6 +142,7 @@ export function Works({ lang, content, phone, activeIndex, onPreview }: WorksPro
                   <img key={active.id} className="tv-cover" src={active.image.src} alt={t(active.image.alt, lang)} decoding="async" />
                 ) : null}
               </div>
+              <div className="tv-scanlines" aria-hidden="true" />
               <div className="tv-glass" aria-hidden="true" />
             </div>
             <img className="tv-frame" src={src} alt="" aria-hidden="true" draggable={false} width={width} height={height} decoding="async" />
@@ -196,77 +198,21 @@ export function Works({ lang, content, phone, activeIndex, onPreview }: WorksPro
 
 const MARQUEE_REPEAT = Array.from({ length: 8 }, (_, i) => i);
 
-function clamp(value: number, min: number, max: number) {
-  return Math.min(max, Math.max(min, value));
-}
+/**
+ * The uploaded telephone model, optimised to a 2 MB GLB by
+ * `scripts/optimize-booth-model.py` (the original 38 MB .gltf stays in the
+ * repository as the source of truth). It replaces the cutout photo, which is
+ * kept underneath as the pre-WebGL / no-WebGL state.
+ */
+const BOOTH_MODEL_SRC = "/gltfs/telephone.glb";
 
-/** Mouse-dragged pseudo-3D booth; touch input remains native page scrolling. */
-function InteractivePhoneBooth({ src }: { src: string }) {
-  const dragRef = useRef<HTMLDivElement>(null);
-  const gesture = useRef({ active: false, x: 0, y: 0, rx: 0, ry: 0 });
-
-  const setRotation = (rx: number, ry: number) => {
-    const node = dragRef.current;
-    if (!node) return;
-    node.style.setProperty("--booth-rx", `${rx}deg`);
-    node.style.setProperty("--booth-ry", `${ry}deg`);
-  };
-
-  const pointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
-    if (event.pointerType === "touch" || event.button !== 0) return;
-    const node = dragRef.current;
-    if (!node) return;
-    gesture.current = { active: true, x: event.clientX, y: event.clientY, rx: 0, ry: 0 };
-    node.classList.add("is-dragging");
-    node.setPointerCapture(event.pointerId);
-  };
-
-  const pointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
-    if (!gesture.current.active || event.pointerType === "touch") return;
-    const dx = event.clientX - gesture.current.x;
-    const dy = event.clientY - gesture.current.y;
-    const rx = clamp(-dy * 0.11, -11, 11);
-    const ry = clamp(dx * 0.14, -17, 17);
-    gesture.current.rx = rx;
-    gesture.current.ry = ry;
-    setRotation(rx, ry);
-  };
-
-  const release = (event: ReactPointerEvent<HTMLDivElement>) => {
-    if (!gesture.current.active) return;
-    gesture.current.active = false;
-    const node = dragRef.current;
-    node?.classList.remove("is-dragging");
-    if (node?.hasPointerCapture(event.pointerId)) node.releasePointerCapture(event.pointerId);
-    // Return to the front with a long, weighty settle.
-    window.requestAnimationFrame(() => setRotation(0, 0));
-  };
-
+function ContactBooth({ fallback }: { fallback: string }) {
   return (
     <div className="contact-booth" aria-hidden="true">
       <span className="contact-booth-shadow" />
       <div className="contact-booth-float">
-        <div
-          ref={dragRef}
-          className="contact-booth-drag"
-          onPointerDown={pointerDown}
-          onPointerMove={pointerMove}
-          onPointerUp={release}
-          onPointerCancel={release}
-        >
-          <div
-            className="contact-booth-inner"
-            style={{ "--booth-image": `url(${JSON.stringify(src)})` } as CSSProperties}
-          >
-            <img className="contact-booth-base" src={src} alt="" loading="lazy" decoding="async" />
-            {/* A tinted duplicate makes dark phone/door materials become warm
-                red wood while the white backdrop stays transparent via
-                multiply. The grain overlay supplies the material cue. */}
-            <img className="contact-booth-wood" src={src} alt="" loading="lazy" decoding="async" />
-            <span className="contact-booth-grain" />
-            <span className="contact-booth-glare" />
-          </div>
-        </div>
+        {/* Drag rotates the model; the scroll timeline drives `.contact-booth`. */}
+        <PhoneBoothModel src={BOOTH_MODEL_SRC} fallback={fallback} />
       </div>
     </div>
   );
@@ -297,7 +243,7 @@ export const Contact = memo(function Contact({ lang, content }: SectionProps<"co
           ))}
         </div>
 
-        <InteractivePhoneBooth src={content.image.src} />
+        <ContactBooth fallback={content.image.src} />
 
         <a href={mailto} className="contact-marquee" aria-label={content.email} data-cursor="link">
           {[0, 1].map((track) => (
