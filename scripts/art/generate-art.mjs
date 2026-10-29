@@ -1,11 +1,13 @@
 /**
- * Renders the two vector illustrations that ship with the template:
- *   public/images/tv-bg.webp             - the television scene (the glass is WHITE
- *                                           so the page can show the live "screen" through it)
- *   public/images/phone-booth-cutout.png - the telephone booth (transparent)
+ * Renders the vector illustrations and starter placeholder media:
+ *   public/images/tv-bg.webp             - the television scene
+ *   public/images/phone-booth-cutout.png - the telephone booth
+ *   public/images/figure.jpg             - hero image
+ *   public/images/profilephoto.jpg       - biography portrait
+ *   public/images/tree{1..5}.jpg         - gallery rolls
+ *   public/images/accent-{1,2}.jpg       - gallery accents
+ *   public/images/works/*.jpg            - sample project covers
  *
- * The glass rectangle matches `defaultContent.works.tv.screen`
- * (top 57.4107% / left 42.8906% / width 13.2813% / height 15.7006%).
  * Run:  node scripts/art/generate-art.mjs
  */
 import sharp from "sharp";
@@ -14,7 +16,9 @@ import path from "node:path";
 
 const root = path.resolve(import.meta.dirname, "..", "..");
 const out = path.join(root, "public", "images");
+const worksOut = path.join(out, "works");
 mkdirSync(out, { recursive: true });
+mkdirSync(worksOut, { recursive: true });
 
 const W = 2560;
 const H = 1707;
@@ -40,10 +44,10 @@ const tvSvg = `
       <stop offset="0" stop-color="#0c0b0a"/><stop offset="1" stop-color="#1b1815"/>
     </linearGradient>
     <linearGradient id="floor" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#1c1612"/><stop offset="1" stop-color="#060505"/>
+      <stop offset="0" stop-color="#1c1612"/><stop offset="0.5" stop-color="#060505"/>
     </linearGradient>
     <radialGradient id="knob" cx="35%" cy="30%" r="80%">
-      <stop offset="0" stop-color="#d9c9a8"/><stop offset="1" stop-color="#4a3c26"/>
+      <stop offset="0" stop-color="#d9c9a8"/><stop offset="4a3c26"/>
     </radialGradient>
     <filter id="soft" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="22"/></filter>
   </defs>
@@ -141,6 +145,75 @@ const boothSvg = `
   <polygon points="666,1478 816,1458 816,1500 666,1522" fill="#0f0f0f"/>
 </svg>`;
 
+const escapeXml = (str) =>
+  String(str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&apos;");
+
+async function renderCard(targetPath, w, h, title, subtitle, [c1, c2, c3]) {
+  const safeTitle = escapeXml(title);
+  const safeSubtitle = escapeXml(subtitle);
+  const svg = `
+<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="${c1}"/>
+      <stop offset="50%" stop-color="${c2}"/>
+      <stop offset="100%" stop-color="${c3}"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="80%" cy="20%" r="60%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.12"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="${w}" height="${h}" fill="url(#bg)"/>
+  <rect width="${w}" height="${h}" fill="url(#glow)"/>
+  <circle cx="${w * 0.85}" cy="${h * 0.25}" r="${Math.min(w, h) * 0.35}" fill="none" stroke="#ffffff" stroke-opacity="0.08" stroke-width="2"/>
+  <circle cx="${w * 0.85}" cy="${h * 0.25}" r="${Math.min(w, h) * 0.2}" fill="none" stroke="#ffffff" stroke-opacity="0.05" stroke-width="1"/>
+  <line x1="${w * 0.08}" y1="${h * 0.82}" x2="${w * 0.92}" y2="${h * 0.82}" stroke="#ffffff" stroke-opacity="0.15" stroke-width="1"/>
+  <text x="${w * 0.08}" y="${h * 0.72}" font-family="Helvetica, Arial, sans-serif" font-weight="800" font-size="${Math.round(h * 0.085)}" fill="#f5f5f5" letter-spacing="1">${safeTitle}</text>
+  <text x="${w * 0.08}" y="${h * 0.77}" font-family="Helvetica, Arial, sans-serif" font-weight="500" font-size="${Math.round(h * 0.038)}" fill="#bbbbbb" letter-spacing="2">${safeSubtitle}</text>
+  <text x="${w * 0.92}" y="${h * 0.87}" font-family="Helvetica, Arial, sans-serif" font-weight="600" font-size="${Math.round(h * 0.03)}" fill="#888888" text-anchor="end" letter-spacing="3">PORTFOLIO / 2026</text>
+</svg>`;
+  await sharp(Buffer.from(svg)).jpeg({ quality: 90 }).toFile(targetPath);
+}
+
+// 1. Core vector artworks
 await sharp(Buffer.from(tvSvg)).webp({ quality: 88 }).toFile(path.join(out, "tv-bg.webp"));
 await sharp(Buffer.from(boothSvg)).png({ compressionLevel: 9 }).toFile(path.join(out, "phone-booth-cutout.png"));
-console.log("art rendered");
+
+// 2. Portrait and Hero images
+await renderCard(path.join(out, "figure.jpg"), 1200, 1600, "FIGURE", "HERO SCENE", ["#1e1b18", "#110f0d", "#080706"]);
+await renderCard(path.join(out, "profilephoto.jpg"), 1000, 1400, "PORTRAIT", "BIOGRAPHY / ABOUT", ["#1f1a1d", "#131012", "#090708"]);
+
+// 3. Gallery rolls & accents
+const palettes = [
+  ["#18232c", "#0f161c", "#070b0e"],
+  ["#1c2826", "#111817", "#080c0b"],
+  ["#2b1e1e", "#1b1212", "#0d0909"],
+  ["#231d28", "#161219", "#0b090c"],
+  ["#26231c", "#171511", "#0b0a08"],
+];
+for (let i = 1; i <= 5; i++) {
+  await renderCard(path.join(out, `tree${i}.jpg`), 1200, 900, `ARCHIVE 0${i}`, "ATMOSPHERE & NATURE", palettes[i - 1]);
+}
+await renderCard(path.join(out, "accent-1.jpg"), 900, 1200, "ACCENT I", "PERFORMANCE STILL", ["#2d1b18", "#1a0f0d", "#0d0806"]);
+await renderCard(path.join(out, "accent-2.jpg"), 900, 1200, "ACCENT II", "SHOWCASE STILL", ["#182324", "#0e1516", "#070a0b"]);
+
+// 4. Works covers
+const works = [
+  { file: "lyric-forge-ktv.jpg", title: "LYRIC FORGE KTV", sub: "LOCAL-FIRST KTV PRODUCTION" },
+  { file: "no-wave.jpg", title: "NO WAVE", sub: "EXPERIMENTAL AUDIO & VISUAL" },
+  { file: "remix-partfolio.jpg", title: "REMIX PORTFOLIO", sub: "INTERACTIVE DESIGN SYSTEM" },
+  { file: "scribeforge.jpg", title: "SCRIBE FORGE", sub: "EDITORIAL WORKSPACE ENGINE" },
+  { file: "win7-book-management.jpg", title: "BOOK MANAGEMENT", sub: "FLUTTER DESKTOP SUITE" },
+];
+
+for (const w of works) {
+  await renderCard(path.join(worksOut, w.file), 1600, 1000, w.title, w.sub, ["#221d2a", "#141119", "#09080c"]);
+}
+
+console.log("all artwork and images rendered successfully");
