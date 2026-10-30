@@ -1,6 +1,6 @@
 /**
  * Renders the vector illustrations and starter placeholder media:
- *   public/images/tv-bg.webp             - the television scene
+ *   public/images/tv.webp             - the television scene
  *   public/images/phone-booth-cutout.png - the telephone booth
  *   public/images/figure.jpg             - hero image
  *   public/images/profilephoto.jpg       - biography portrait
@@ -184,7 +184,7 @@ async function renderCard(targetPath, w, h, title, subtitle, [c1, c2, c3]) {
 }
 
 // 1. Core vector artworks
-await sharp(Buffer.from(tvSvg)).webp({ quality: 88 }).toFile(path.join(out, "tv-bg.webp"));
+await sharp(Buffer.from(tvSvg)).webp({ quality: 88 }).toFile(path.join(out, "tv.webp"));
 await sharp(Buffer.from(boothSvg)).png({ compressionLevel: 9 }).toFile(path.join(out, "phone-booth-cutout.png"));
 
 // 2. Portrait and Hero images
