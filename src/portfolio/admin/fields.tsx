@@ -1,7 +1,7 @@
 "use client";
 
 import { useContext, useRef, useState, type ReactNode } from "react";
-import { api, StudioModeContext, DEMO_UPLOAD_LIMIT } from "./shared";
+import { StudioContext, UPLOAD_LIMIT } from "./shared";
 import { type LocalizedText, type MediaImage } from "../content/types";
 
 export function Field({ label, children, wide, hint }: { label: string; children: ReactNode; wide?: boolean; hint?: string }) {
@@ -55,15 +55,18 @@ export function ImageField({ label, value, onChange, onError, hint }: { label: s
 }
 
 export function SourcePicker({ src, onChange, onError }: { src: string; onChange: (src: string) => void; onError: (m: string) => void }) {
-  const { mode, upload } = useContext(StudioModeContext);
+  const { upload } = useContext(StudioContext);
   const inputRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
 
   const handle = async (file: File) => {
     setBusy(true);
     try {
-      if (mode === "demo" && file.size > DEMO_UPLOAD_LIMIT) {
-        throw new Error("Demo mode keeps uploads under 1.4 MB (browser storage). Paste an image URL, or connect PostgreSQL for full-size uploads.");
+      // A static site has no upload endpoint: the picture is inlined into the
+      // draft, which is then saved in localStorage. Past this size the draft
+      // would evict itself, so point at the URL field instead.
+      if (file.size > UPLOAD_LIMIT) {
+        throw new Error("Uploads are capped at 1.4 MB because they are inlined into the draft. Use a hosted image URL for anything larger.");
       }
       onChange(await upload(file));
     } catch (error) {

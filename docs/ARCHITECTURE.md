@@ -1,58 +1,54 @@
 # 架构说明与本轮重构记录
 
-## 1. 对原仓库（BrainEno/portfolio-template）的结构审查
+## 1. 形态：只有静态导出
 
-| # | 发现 | 问题 | 处理 |
-|---|---|---|---|
-| 1 | `export/react-router/` 整套第二份工程 + `scripts/build-export.mjs` + 后台「下载 zip」 | 同一产品两套入口、`src/portfolio` 靠脚本拷贝，易漂移；Netlify 其实能直接跑 Next | **删除**，Next 工程原生适配 Netlify/Cloudflare/VPS |
-| 2 | `/adam` 只读预览路由（笔误产生） | 与 `/admin` 重复、`preview` 分支污染 `AdminApp`/`ModeBar` | **删除**路由与全部 `preview` 分支；`/admin` 自身即演示入口 |
-| 3 | `server/db.ts` 465 行 | 平台识别、连接串、DDL、Postgres 存储、演示存储、探测、密码全混在一起 | 拆为 `types / state / connection / storage / backend` |
-| 4 | `server/api.ts` 314 行 | content、upload、media、session、backup、status 处理函数混写 | 拆为 `http / content-handlers / session-handlers / backup-handlers / status-handler`，`api.ts` 仅做出口，路由文件不变 |
-| 5 | `admin/AdminApp.tsx` 972 行 | 字段组件、各页签、数据面板、登录、壳在一个文件 | 拆为 `shared / fields / editor / DataPanel / Login / AdminApp` |
-| 6 | `src/db/index.ts` 无 `DATABASE_URL` 就 `throw` | 与「无数据库也能跑」矛盾，且运行时并未使用 drizzle 客户端 | 删除；`src/db/schema.ts` 保留为 drizzle-kit 的表定义来源 |
-| 7 | `drizzle.config.json` 写死本机连接串 | 换机器就失效 | 改 `drizzle.config.ts`，读 `DATABASE_URL` |
-| 8 | 字体：首页与后台各自 `@font-face`、Google Fonts `<link>` 阻塞渲染、`/fonts` 文件不存在导致 404 | 两处字体可能不一致 | 统一到 `globals.css` 的 `--font-sans/--font-serif/--font-cjk`；Inter / Inria Serif 用 `next/font` 构建期自托管 |
-| 9 | 公共图片资源（`public/`）未提交 | 下载代码后图裂 | 补全 `public/images`（公开授权照片 + 矢量电视机/电话亭，生成脚本 `scripts/art`） |
-| 10 | 在 Workers 之外也 `import("@opennextjs/cloudflare")` | Node 上白白加载 | 仅在 `navigator.userAgent === "Cloudflare-Workers"` 时导入 |
-| 11 | 内网库（`db` 主机名 / `sslmode=disable`）会被强制 TLS | docker-compose 连不上 | 新增 `isPlainTcp` 判定 + `DATABASE_SSL=false` |
-| 12 | 无 sitemap/robots/manifest/离线 | SEO、PWA 缺失 | 见第 3、4 节 |
+站点现在**只有一种形态**：`npm run build:static` 产出 `out/`，任何静态托管都能跑。
+上一版还保留过「服务端 + PostgreSQL CMS」的分支，两条路要走两套心智、两套部署、两套安全面，
+而这一版的产品需求（个人作品集、内容变化不频繁）完全不需要请求时读库。于是整条服务端链路被删掉了：
 
-保持不变（审查后认为合理）：`src/portfolio` 作为与路由解耦的领域模块；`content/` 作为唯一内容契约；
-首页「服务端读内容 → 客户端编排」；运行时自动建表；Netlify 迁移文件。
+| 删掉的东西 | 为什么 |
+|---|---|
+| `src/portfolio/server/*`（连接解析、存储、鉴权、会话、备份、状态） | 只有静态站，没有请求时可写的地方 |
+| `src/app/api/*`（content / media / session / backup / status / health） | 同上；`output: "export"` 也装不下 route handler |
+| `src/db/*`、`drizzle.config.*`、`netlify/database/`、迁移 SQL | 没有数据库 |
+| `pg`、`drizzle-orm`、`@netlify/database`、`@opennextjs/cloudflare`、`wrangler` | 依赖少了 5 个，安装体积和攻击面一起下降 |
+| `Dockerfile`、`docker-compose.yml`、`deploy/`、`scripts/{setup,deploy,vps-install,doctor}.sh` | 不再需要跑一个进程 |
+| `export/react-router/`（第二份工程）、`/adam` 只读路由、`admin/Login.tsx` | 重复入口；静态站没有「登录」这回事 |
+| `docs/{DEPLOY,PLATFORM_DEPLOY,NETLIFY_DEPLOY,SETUP}.md` | 并入 `STATIC_EXPORT.md` / `QUICKSTART.md` |
+
+保留并强化的部分：`src/portfolio` 作为与路由解耦的领域模块、`content/` 作为唯一内容契约、
+`/admin` 作为编辑器、`public/sw.js` 离线缓存、SEO/PWA 全套。
 
 ## 2. 当前结构与数据流
 
 ```
-浏览器 ── / ──► page.tsx ─ getSiteContent() ─► content/published.json [Static]
-                              │                └─ storage.readContent()
-                              │                 ├─ Postgres(site_content)         [Live]
-                              │                 └─ 内存默认值 defaultContent(mock) [Demo]
-                              └► Portfolio(content, mode)
-                                    └ Demo 模式下 useLiveContent 订阅 localStorage 草稿(BroadcastChannel)
-/admin ──► AdminApp ─ /api/session ─► Live: Cookie 会话 · Demo: 直接放行(数据只在本浏览器)
-          编辑 ─► Live: PUT /api/content (发布)   Demo: saveDemoContent (400ms 自动写缓存 → 首页实时变)
+浏览器 ── / ──► page.tsx ─ getSiteContent() ─► content/published.json  （有就用）
+                                              └─ content/defaults.ts    （没有就用）
+                              └► Portfolio(content)
+                                    └ useLiveContent：本浏览器有草稿就用草稿（localStorage + BroadcastChannel）
+
+/admin ──► AdminApp（无会话、无网络请求）
+           编辑 ─► saveDemoContent（400ms 防抖写 localStorage）→ 首页实时变
+           Publish ─► 浏览器下载 published.json ─► 提交到 src/portfolio/content/ ─► 重新构建
 ```
 
-- **内容来源**（`content/source.ts#getSiteContent`，第 2 节的 `loadContent()` 已并入这一层）：`CONTENT_MODE=static`
-  时读构建期快照（`content/published.json`，没有就退回 `content/defaults.ts`，无需任何服务端）；否则照旧询问存储层。`pg` 只在 postgres 分支用
-  动态 `import()` 载入，静态导出的产物里不含数据库代码。
-- **模式判定**（`server/backend.ts#probeBackend`，15 s 缓存）：能连库并读到表 → `postgres`；否则 `demo`。
-  静态导出没有可探的服务端，`content/mode.ts` 在构建期就把结果定成 `static`（`IS_STATIC_BUILD`）。
-  一旦 `postgres`，`getStorage()` 只返回数据库存储，浏览器草稿与 mock 不再被读取——即**自动废除假数据**。
-- **渲染策略**：`content/mode.ts#requireFreshRender()` 是每个需要最新内容的页面/元数据的第一行——服务端形态下它是
-  空操作（维持 `force-dynamic` 的实时性），静态形态下它就是「这里必须预先渲染」的断言，防止某页悄悄退化成动态路由
-  而让 `output: "export"` 构建失败。详见 `docs/STATIC_EXPORT.md`。
-- **连接解析**（`server/connection.ts`）：Cloudflare Hyperdrive → Cloudflare 变量 → `process.env` 多个键 → `@netlify/database`。
-- **建表**（`server/storage.ts#ensureSchema`）：Netlify 校验迁移已执行；其他平台 `create table if not exists`。
+- **内容来源**：`content/source.ts#getSiteContent()` 是唯一入口，`node:fs` 读构建期快照，
+  读不到就退回 `defaults.ts`。没有任何数据库分支，所以产物里不可能出现数据库驱动。
+- **草稿覆盖**：`client/useLiveContent.ts` 订阅 localStorage。访问者没开过编辑器就没有草稿，
+  看到的就是构建时的那份内容——这是「本地预览」和「线上内容」之间唯一的桥。
+- **发布**：没有写接口，所以「发布」= 把一个 JSON 文件提交回仓库。`/admin` 的 Publish 只做
+  `Blob` 下载，`Ctrl/Cmd+S` 同效。
 
 ## 3. SEO
 
 - `layout.tsx`：`metadataBase`、title 模板、description、Open Graph / Twitter 卡片、`lang`（随默认语言 zh-Hans / en）、robots、canonical、`themeColor`。
 - `page.tsx`：JSON-LD（WebSite + Person + 每个作品 CreativeWork）；内容经 SSR 输出，爬虫无需执行 JS 即可读取全部文案。
 - `/works/[id]`：每个作品独立可收录页面（标题、详情介绍、详情图、BreadcrumbList）。
-- `robots.txt`、`sitemap.xml`（含全部作品页）、`manifest.webmanifest`、`icon.svg`、`apple-icon.png`——均由数据库内容生成。
-- `/admin`、`/api`、`/offline` 设为 noindex / Disallow。
-- 站点 URL 自动取自 `NEXT_PUBLIC_SITE_URL` 或各平台注入变量（`seo/site.ts`）。
+- `robots.txt`、`sitemap.xml`（含全部作品页）、`manifest.webmanifest`、`icon.svg`、`apple-icon.png`——均由构建期内容生成。
+- `/admin`、`/offline` 设为 noindex / Disallow。
+- 站点 URL 在**构建期**定死（`NEXT_PUBLIC_SITE_URL` → `SITE_URL` → 平台注入变量 → localhost，见 `seo/site.ts`），
+  静态托管没有请求时的 Host 可读。
+- `sitemap.xml` 的 `lastmod` 取 `published.json` 的 `exportedAt`，而不是构建时间，否则每次部署都等于「全站更新」。
 
 ## 4. PWA / 离线
 
@@ -60,10 +56,10 @@
 
 | 请求 | 策略 |
 |---|---|
-| `/_next/static`、`/images`、`/fonts`、`/icons`、`/api/media/*` | cache-first |
+| `/_next/static`、`/images`、`/fonts`、`/icons`、`/gltfs` | cache-first |
 | 页面导航 | network-first → 缓存副本 → `/offline` |
-| `/api/content`（GET）、manifest | network-first，离线读缓存 |
-| `/admin`、其他 `/api/*`、非 GET | 不缓存 |
+| manifest | network-first，离线读缓存 |
+| `/admin`、非 GET | 不缓存 |
 
 `PwaRegister` 仅在生产构建注册；开发模式反而会注销旧 SW。manifest 提供 192/512/maskable 图标与快捷方式，可安装为桌面应用。
 更新缓存：修改 `sw.js` 的 `VERSION`。
@@ -159,8 +155,8 @@ Hero、肖像（含重影层）、画廊、两张点缀图、电视封面、作�
 ## 7. 已知限制 / 后续
 
 - 后台界面文案为英文（含少量中文提示）；多语言化可在 `admin/` 内集中处理。
+- 编辑器里的草稿只在本浏览器，且受 localStorage 配额限制（单图 ≤ 1.4 MB）；跨设备靠 Data 页签的备份文件。
 - 电视外框为矢量原创插画，可在 Television 页签校准玻璃位置后替换为自己的照片；电话亭为上传的 glTF 模型。
 - 仓库同时保留原始 `telephone.gltf`（38 MB）与优化后的 `.glb`（2.15 MB），只有 `.glb` 参与运行时加载；
   若不需要再修改模型，可移除原始 `.gltf` 以减小仓库体积。
-- 首位访问 `/admin` 的人设置密码：生产环境请在部署后立即访问，或设置 `ADMIN_PASSWORD`。
 - Aeonik 为商业字体，未随仓库分发；放入本机或自行添加 `@font-face` 源即可，缺省回退 Inter。

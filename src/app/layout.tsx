@@ -1,19 +1,18 @@
 import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
-import { Inria_Serif, Inter } from "next/font/google";
-import { requireFreshRender } from "@/portfolio/content/mode";
+import "@fontsource-variable/inter/wght.css";
+import "@fontsource/inria-serif/latin-400.css";
+import "@fontsource/inria-serif/latin-700.css";
 import { getSiteContent } from "@/portfolio/content/source";
 import { htmlLang, pageTitle, pickText, siteUrl, absoluteUrl } from "@/portfolio/seo/site";
 import PwaRegister from "@/portfolio/ui/PwaRegister";
 import "./globals.css";
 
-// Self-hosted at build time (no render-blocking request to Google at runtime,
-// and the files are precached by the service worker for offline use).
-const inter = Inter({ subsets: ["latin"], variable: "--font-inter", display: "swap" });
-const inria = Inria_Serif({ subsets: ["latin"], weight: ["400", "700"], variable: "--font-inria", display: "swap" });
+// Fonts are self-hosted from the npm packages above, not fetched from Google:
+// the build no longer needs the internet, the files ship with the site, and the
+// static export works on any host (including offline / air-gapped previews).
 
 export async function generateMetadata(): Promise<Metadata> {
-  await requireFreshRender();
   const content = await getSiteContent();
   const lang = content.identity.defaultLanguage;
   const title = pageTitle(content);
@@ -53,10 +52,9 @@ export const viewport: Viewport = {
 };
 
 export default async function RootLayout({ children }: { children: ReactNode }) {
-  await requireFreshRender();
   const content = await getSiteContent();
   return (
-    <html lang={htmlLang(content.identity.defaultLanguage)} className={`${inter.variable} ${inria.variable}`} suppressHydrationWarning>
+    <html lang={htmlLang(content.identity.defaultLanguage)} suppressHydrationWarning>
       <body>
         {children}
         <PwaRegister />

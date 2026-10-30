@@ -4,11 +4,12 @@
  *
  *   npm run build:static
  *
- * Sets `CONTENT_MODE=static` for the whole build, which makes Next
- * prerender every route and write plain files to `out/` (see next.config.ts).
- * The result has no server, no `/api` routes and no database driver — drop the
- * folder on GitHub Pages, an S3/OSS bucket, nginx, or try it locally with
- * `python -m http.server -d out`.
+ * Next is configured as `output: "export"` (see next.config.ts), so this is
+ * `next build` with the deployment variables filled in: the origin is baked into
+ * canonical URLs / sitemap.xml / robots.txt, and the optional base path makes
+ * the export work under `/repo/` on GitHub Pages. The result has no server, no
+ * API routes and no database — serve it with `npm run preview` or any static
+ * host.
  */
 import { spawn } from "node:child_process";
 
@@ -25,7 +26,6 @@ if (!origin) {
 
 const env = {
   ...process.env,
-  CONTENT_MODE: "static",
   // A static host cannot read a request-time env var, so the public origin is
   // baked into sitemap.xml / robots.txt / Open Graph tags at build time.
   SITE_URL: origin || "http://localhost:3000",

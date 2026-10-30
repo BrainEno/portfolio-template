@@ -229,7 +229,7 @@ export const Contact = memo(function Contact({ lang, content }: SectionProps<"co
   const handleExternal = !dialable;
   const marquee = t(content.marquee, lang);
   const headlinesRef = useRef<HTMLDivElement>(null);
-  const headlineKey = content.headlines.join("\n");
+  const headlineText = content.headlines.join("\n");
 
   /**
    * Types the call sign to the largest size that still clears the booth.
@@ -239,65 +239,96 @@ export const Contact = memo(function Contact({ lang, content }: SectionProps<"co
    * here, but a fallback or a future face can be wider — and then the third
    * line runs into the model at exactly the sizes where the block looks best.
    * So the ratio is measured off the rendered line instead of assumed: widest
-   * line against the gap to the booth's silhouette. It only ever scales *down*
-   * (the CSS clamp stays the preferred ceiling), and re-runs on resize and once
-   * the webfont has landed.
+   * line against the room actually available — the gap to the booth's
+   * silhouette when the sheet is two columns, the column itself when it is
+   * stacked. It only ever scales *down* (the CSS value stays the preferred
+   * ceiling), and re-runs on resize and once the webfont has landed.
    */
   useLayoutEffect(() => {
     const block = headlinesRef.current;
     if (!block) return;
+    const stage = block.parentElement;
+    const booth = stage?.querySelector<HTMLElement>(".contact-booth");
+    if (!stage || !booth) return;
+
+    // Measure with an inert probe instead of the live headings. Two reasons:
+    // the probe is always `nowrap` (a wrapped line is exactly as wide as its
+    // column, which would make any overrun look like a perfect fit), and its
+    // width changes when the webfont swaps in — a ResizeObserver on it is a
+    // reliable "the metrics changed, re-fit" signal. `document.fonts.ready`
+    // alone is not: it can resolve before the font that these elements need has
+    // even been requested.
+    const probe = document.createElement("div");
+    probe.setAttribute("aria-hidden", "true");
+    probe.style.cssText = "position:absolute;top:0;left:0;visibility:hidden;pointer-events:none;white-space:nowrap;font-size:100px;";
+    const style = getComputedStyle(block.querySelector(".contact-line") ?? block);
+    probe.style.fontFamily = style.fontFamily;
+    probe.style.fontWeight = style.fontWeight;
+    probe.style.fontStyle = style.fontStyle;
+    probe.style.letterSpacing = style.letterSpacing;
+    probe.style.textTransform = style.textTransform;
+    stage.appendChild(probe);
+
     const fit = () => {
       block.style.removeProperty("--contact-fs");
-      const booth = block.parentElement?.querySelector<HTMLElement>(".contact-booth");
-      // Below 768px the booth is stacked under the copy, not beside it: there
-      // is no column to fit against and the type keeps its mobile size.
-      if (!booth || !block.isConnected || getComputedStyle(booth).position !== "absolute") return;
-      // `.contact-line-word` is a block, so its own rect is the full line box;
-      // the glyph run is measured with a Range instead.
-      const range = document.createRange();
-      let widest = 0;
-      for (const el of Array.from(block.querySelectorAll(".contact-line-word"))) {
-        range.selectNodeContents(el);
-        widest = Math.max(widest, range.getBoundingClientRect().width);
+      if (!block.isConnected) return;
+      // Widest line, in units of the font size (px per 1px of type).
+      let ratio = 0;
+      for (const line of headlineText.split("\n")) {
+        probe.textContent = line || "";
+        ratio = Math.max(ratio, probe.getBoundingClientRect().width / 100);
       }
-      range.detach();
-      const box = block.getBoundingClientRect();
-      const stage = booth.getBoundingClientRect();
-      // The drawn silhouette starts ~11% inside the stage box (the stage is
-      // wider than the booth itself), so that is where the copy has to stop.
-      const available = stage.left + stage.width * 0.11 - box.left - 18;
-      if (widest <= 0 || available <= 0) return;
-      const ratio = available / widest;
-      if (ratio >= 1) return;
-      // `.contact-headlines` owns the token; `.contact-line` reads it, so the
-      // fit does not have to touch three elements and fight the clamp.
-      const size = parseFloat(getComputedStyle(block.querySelector(".contact-line") ?? block).fontSize);
-      block.style.setProperty("--contact-fs", `${Math.max(24, size * ratio).toFixed(2)}px`);
+      if (ratio <= 0) return;
+      // Layout boxes, not client rects: the entrance timeline moves and scales
+      // the booth, and measuring mid-flight would shrink the type for a
+      // collision that does not exist once it lands.
+      const stacked = getComputedStyle(booth).position !== "absolute";
+      const boxLeft = block.offsetLeft;
+      // Side by side: stop where the drawn silhouette starts, ~11% inside the
+      // stage box (the stage is wider than the booth itself). Stacked: the copy
+      // owns the full column, so the only limit is its own container.
+      const limit = stacked ? boxLeft + block.clientWidth : booth.offsetLeft + booth.offsetWidth * 0.11;
+      const available = limit - boxLeft - 18;
+      if (available <= 0) return;
+      // The CSS clamp is the preferred size; only overrun is corrected.
+      const preferred = parseFloat(getComputedStyle(block.querySelector(".contact-line") ?? block).fontSize);
+      if (preferred * ratio <= available) return;
+      block.style.setProperty("--contact-fs", `${Math.max(20, available / ratio).toFixed(2)}px`);
     };
+
     fit();
+    const observer = new ResizeObserver(fit);
+    observer.observe(probe);
     window.addEventListener("resize", fit);
     document.fonts?.ready.then(fit).catch(() => {});
-    return () => window.removeEventListener("resize", fit);
-  }, [headlineKey]);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", fit);
+      probe.remove();
+    };
+    // The copy itself is the dependency: a language switch re-fits.
+  }, [headlineText]);
 
   return (
     <section id="contact" className="contact">
       <div className="contact-inner">
-        <div className="contact-headlines" ref={headlinesRef}>
-          {content.headlines.map((line, index) => (
-            <h2 key={index} className={`contact-line contact-line-${index + 1}`}>
-              {/* GSAP animates .contact-line-text; the inner word carries the
-                  hover styles so transforms never fight the scroll timeline. */}
-              <span className="contact-line-text">
-                <span className="contact-line-word" data-text={line}>
-                  {line}
+        <div className="contact-stage">
+          <div className="contact-headlines" ref={headlinesRef}>
+            {content.headlines.map((line, index) => (
+              <h2 key={index} className={`contact-line contact-line-${index + 1}`}>
+                {/* GSAP animates .contact-line-text; the inner word carries the
+                    hover styles so transforms never fight the scroll timeline. */}
+                <span className="contact-line-text">
+                  <span className="contact-line-word" data-text={line}>
+                    {line}
+                  </span>
                 </span>
-              </span>
-            </h2>
-          ))}
-        </div>
+              </h2>
+            ))}
+          </div>
 
-        <ContactBooth fallback={content.image.src} plateText={content.email} />
+          <ContactBooth fallback={content.image.src} plateText={content.email} />
+        </div>
 
         <a href={mailto} className="contact-marquee" aria-label={content.email} data-cursor="link">
           {[0, 1].map((track) => (

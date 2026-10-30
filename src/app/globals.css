@@ -10,8 +10,8 @@
 }
 
 :root {
-  --font-sans: "Aeonik", var(--font-inter), "Helvetica Neue", Arial, sans-serif;
-  --font-serif: var(--font-inria), "Inria Serif", "Times New Roman", serif;
+  --font-sans: "Aeonik", "Inter Variable", "Inter", "Helvetica Neue", Arial, sans-serif;
+  --font-serif: "Inria Serif", "Times New Roman", serif;
   --font-cjk: "PingFang SC", "PingFang TC", "Noto Sans SC", "Noto Sans TC", "Microsoft YaHei", "Microsoft JhengHei", sans-serif;
 }
 

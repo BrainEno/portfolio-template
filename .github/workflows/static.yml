@@ -1,6 +1,6 @@
 name: Static site
 
-# Builds the pure-static export (CONTENT_MODE=static → out/) and publishes it to
+# Builds the static export (`npm run build:static` → out/) and publishes it to
 # GitHub Pages. Nothing here talks to a database: the build reads
 # `content/defaults.ts` or the committed `content/published.json` snapshot.
 on:

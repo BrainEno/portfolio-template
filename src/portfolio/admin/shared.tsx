@@ -1,20 +1,7 @@
 "use client";
 
 import { createContext } from "react";
-import { type PortfolioContent } from "../content/types";
-
-export type Session = {
-  authenticated: boolean;
-  mode: "demo" | "postgres";
-  connected: boolean;
-  platform: "local" | "netlify" | "cloudflare" | "vercel" | "railway" | "render" | "fly" | "generic";
-  needsSetup: boolean;
-  demoPasswordEnabled: boolean;
-  defaultPassword: boolean;
-  connectionSource: string | null;
-  database: string | null;
-  error: string | null;
-};
+import type { PortfolioContent } from "../content/types";
 
 export type Patch = (mutate: (draft: PortfolioContent) => void) => void;
 export type TabId = "identity" | "hero" | "intro" | "gallery" | "works" | "tv" | "contact" | "theme" | "data";
@@ -31,19 +18,13 @@ export const TABS: { id: TabId; label: string }[] = [
   { id: "data", label: "Data" },
 ];
 
-export async function api<T>(url: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(url, { credentials: "same-origin", ...init });
-  const data = (await response.json().catch(() => ({}))) as T & { error?: string };
-  if (!response.ok) throw new Error(data.error || `Request failed (${response.status})`);
-  return data;
-}
-
-/* Demo-mode uploads become inline data URLs; live uploads go to the database. */
-export const StudioModeContext = createContext<{
-  mode: "demo" | "postgres";
-  upload: (file: File) => Promise<string>;
-}>({
-  mode: "demo",
+/**
+ * Uploads in a static site have nowhere to go: there is no API route and no
+ * database. Images dropped into the studio are read into the draft as data URLs
+ * (and end up inside `published.json` when you publish), so the context exposes
+ * exactly one function and nothing else.
+ */
+export const StudioContext = createContext<{ upload: (file: File) => Promise<string> }>({
   upload: async () => {
     throw new Error("Upload unavailable");
   },
@@ -58,5 +39,8 @@ export function fileToDataUrl(file: File) {
   });
 }
 
-export const DEMO_UPLOAD_LIMIT = 1.4 * 1024 * 1024;
-
+/**
+ * A draft lives in localStorage, which is a ~5 MB budget per origin. Keep
+ * single uploads well under it, or one photo silently evicts the whole draft.
+ */
+export const UPLOAD_LIMIT = 1.4 * 1024 * 1024;

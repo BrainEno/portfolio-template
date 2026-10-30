@@ -21,6 +21,16 @@ const DRAFT_META_KEY = "pf.demo.meta.v2";
 
 export type DemoMeta = { savedAt: string | null };
 
+/**
+ * Everything the UI needs to render a draft, in one immutable value.
+ *
+ * `useSyncExternalStore` requires `getSnapshot()` to return the same reference
+ * until the underlying storage actually changes, so the parsed content and the
+ * saved-at stamp are cached here and rebuilt only when the raw strings differ.
+ * That also gives hooks a monotonic `revision` to re-run layout effects with.
+ */
+export type DemoSnapshot = { content: PortfolioContent; savedAt: string | null; revision: number };
+
 type Listener = (content: PortfolioContent) => void;
 
 const listeners = new Set<Listener>();
@@ -47,12 +57,16 @@ function ensureChannel() {
   if ("BroadcastChannel" in window) {
     channel = new BroadcastChannel(DEMO_CHANNEL);
     channel.addEventListener("message", (event: MessageEvent<{ type?: string }>) => {
-      if (event.data?.type === "content") emitFromStorage();
+      if (event.data?.type !== "content") return;
+      emitFromStorage();
+      snapshotListeners.forEach((listener) => listener());
     });
   }
 
   window.addEventListener("storage", (event) => {
-    if (event.key === DEMO_STORAGE_KEY) emitFromStorage();
+    if (event.key !== DEMO_STORAGE_KEY && event.key !== DRAFT_META_KEY) return;
+    emitFromStorage();
+    snapshotListeners.forEach((listener) => listener());
   });
 }
 
@@ -60,6 +74,58 @@ function emitFromStorage() {
   const content = readDemoContent();
   if (!content) return;
   listeners.forEach((listener) => listener(content));
+}
+
+/* ---- snapshot cache -------------------------------------------------- */
+let cachedContent: PortfolioContent | null = null;
+let cachedContentRaw: string | null = null;
+let cachedMeta: DemoMeta = { savedAt: null };
+let cachedMetaRaw: string | null = null;
+let snapshot: DemoSnapshot | null = null;
+let revision = 0;
+const snapshotListeners = new Set<() => void>();
+
+function demoMetaRaw(): string | null {
+  return hasWindow() ? window.localStorage.getItem(DRAFT_META_KEY) : null;
+}
+
+export function readDemoMeta(): DemoMeta {
+  const raw = demoMetaRaw();
+  if (raw !== cachedMetaRaw) {
+    cachedMetaRaw = raw;
+    try {
+      cachedMeta = JSON.parse(raw ?? "{}") as DemoMeta;
+    } catch {
+      cachedMeta = { savedAt: null };
+    }
+  }
+  return cachedMeta;
+}
+
+/** Current draft, or `null` when this browser has none. Referentially stable. */
+export function getDemoSnapshot(): DemoSnapshot | null {
+  if (!hasWindow()) return null;
+  const contentRaw = window.localStorage.getItem(DEMO_STORAGE_KEY);
+  if (contentRaw !== cachedContentRaw) {
+    cachedContentRaw = contentRaw;
+    cachedContent = parse(contentRaw);
+    snapshot = null;
+    revision += 1;
+  }
+  const meta = readDemoMeta();
+  if (meta.savedAt !== (snapshot ? snapshot.savedAt : null)) snapshot = null;
+  if (!cachedContent) return null;
+  if (!snapshot) snapshot = { content: cachedContent, savedAt: meta.savedAt, revision };
+  return snapshot;
+}
+
+/** Subscribe to draft changes (this tab, other tabs, or a save). */
+export function subscribeDemoSnapshot(listener: () => void) {
+  ensureChannel();
+  snapshotListeners.add(listener);
+  return () => {
+    snapshotListeners.delete(listener);
+  };
 }
 
 export function subscribeDemoContent(listener: Listener) {
@@ -73,15 +139,6 @@ export function subscribeDemoContent(listener: Listener) {
 export function readDemoContent(): PortfolioContent | null {
   if (!hasWindow()) return null;
   return parse(window.localStorage.getItem(DEMO_STORAGE_KEY));
-}
-
-export function readDemoMeta(): DemoMeta {
-  if (!hasWindow()) return { savedAt: null };
-  try {
-    return JSON.parse(window.localStorage.getItem(DRAFT_META_KEY) ?? "{}") as DemoMeta;
-  } catch {
-    return { savedAt: null };
-  }
 }
 
 function writeDemoMeta(meta: DemoMeta) {
@@ -111,6 +168,7 @@ export function saveDemoContent(content: PortfolioContent) {
   writeDemoMeta({ savedAt: new Date().toISOString() });
   channel?.postMessage({ type: "content" });
   listeners.forEach((listener) => listener(normalized));
+  snapshotListeners.forEach((listener) => listener());
 }
 
 export function clearDemoContent() {
@@ -118,4 +176,5 @@ export function clearDemoContent() {
   window.localStorage.removeItem(DEMO_STORAGE_KEY);
   window.localStorage.removeItem(DRAFT_META_KEY);
   channel?.postMessage({ type: "content" });
+  snapshotListeners.forEach((listener) => listener());
 }

@@ -2,7 +2,7 @@
 
 import { gsap } from "gsap";
 import { ScrollSmoother } from "gsap/ScrollSmoother";
-import { memo, useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
+import { memo, useCallback, useEffect, useRef, useState, useSyncExternalStore, type CSSProperties } from "react";
 import { t } from "../content/normalize";
 import type { Language, PortfolioContent, SectionId } from "../content/types";
 import {
@@ -18,6 +18,8 @@ import { cx } from "./cx";
 import { Contact, Hero, Journey, Works } from "./sections";
 
 const LANG_KEY = "pf-lang";
+const subscribeNever = () => () => {};
+const readStoredLang = () => (typeof window === "undefined" ? null : window.localStorage.getItem(LANG_KEY));
 const SEEN_KEY = "pf-preloaded";
 const SECTIONS: SectionId[] = ["intro", "works", "contact"];
 
@@ -130,30 +132,20 @@ function Cursor() {
   return <div ref={ref} className="cursor" aria-hidden="true"><span className="cursor-dot" /></div>;
 }
 
-export default function Portfolio({
-  content: serverContent,
-  mode = "postgres",
-}: {
-  content: PortfolioContent;
-  /**
-   * `demo` renders the browser-cached draft so /admin edits preview live;
-   * `static` is a build-time export where the server payload is the only truth
-   * and nothing is polled.
-   */
-  mode?: "demo" | "postgres" | "static";
-}) {
-  const { content, revision } = useLiveContent(serverContent, mode);
+export default function Portfolio({ content: bakedContent }: { content: PortfolioContent }) {
+  // The build's content is the floor; a studio draft in this browser overrides it.
+  const { content, revision } = useLiveContent(bakedContent);
   const scopeRef = useRef<HTMLDivElement>(null);
   const lastWorkRef = useRef(-1);
-  const [lang, setLang] = useState<Language>(content.identity.defaultLanguage);
+  // Language preference: the stored value is read as an external store rather
+  // than copied into state from an effect (which would render the wrong
+  // language for a frame, and fights hydration).
+  const [langOverride, setLangOverride] = useState<Language | null>(null);
+  const storedLang = useSyncExternalStore(subscribeNever, readStoredLang, () => null);
+  const lang: Language = langOverride ?? (storedLang === "zh" || storedLang === "en" ? storedLang : content.identity.defaultLanguage);
   const [section, setSection] = useState<SectionId>("intro");
   const [activeWork, setActiveWork] = useState(-1);
   const [layoutKey, setLayoutKey] = useState(0);
-
-  useEffect(() => {
-    const stored = window.localStorage.getItem(LANG_KEY);
-    if (stored === "zh" || stored === "en") setLang(stored);
-  }, []);
 
   useEffect(() => {
     document.documentElement.lang = lang === "zh" ? "zh-Hans" : "en";
@@ -161,7 +153,7 @@ export default function Portfolio({
   }, [lang, content.identity, revision]);
 
   const changeLanguage = useCallback((next: Language) => {
-    setLang(next);
+    setLangOverride(next);
     window.localStorage.setItem(LANG_KEY, next);
   }, []);
 

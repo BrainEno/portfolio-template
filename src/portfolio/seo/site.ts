@@ -1,19 +1,20 @@
 import type { Language, PortfolioContent } from "../content/types";
 
 /**
- * Canonical origin of the site. Resolution order covers every supported host:
- * explicit NEXT_PUBLIC_SITE_URL / SITE_URL, then the URL variables injected by
- * Netlify, Vercel, Cloudflare Pages and Render, finally localhost.
+ * Canonical origin of the site, baked in at build time.
+ *
+ * A static host cannot read env vars per request, so `NEXT_PUBLIC_SITE_URL`
+ * (or `SITE_URL`) must be set when building for deployment. The host-provided
+ * fallbacks are second best — Netlify sets `URL`, GitHub Pages users usually set
+ * the variable — and localhost is only for local builds.
  */
 export function siteUrl(): URL {
   const raw =
     process.env.NEXT_PUBLIC_SITE_URL ||
     process.env.SITE_URL ||
     process.env.URL || // Netlify
-    process.env.DEPLOY_PRIME_URL || // Netlify previews
-    (process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` : "") ||
-    process.env.CF_PAGES_URL ||
-    process.env.RENDER_EXTERNAL_URL ||
+    process.env.DEPLOY_PRIME_URL || // Netlify deploy previews
+    process.env.CF_PAGES_URL || // Cloudflare Pages (static)
     "http://localhost:3000";
   try {
     return new URL(raw.startsWith("http") ? raw : `https://${raw}`);
