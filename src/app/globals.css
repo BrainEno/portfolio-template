@@ -1,4 +1,4 @@
-/* Shared design tokens: the index page and /admin read the same fonts. */
+/* Shared design tokens: the index page, the work pages and the offline shell. */
 @font-face {
   /* Licensed face: install it locally, or drop Aeonik-Regular.woff2 into
      public/fonts and add a url(...) source here. Falls back to Inter. */
@@ -10,8 +10,8 @@
 }
 
 :root {
-  --font-sans: "Aeonik", var(--font-inter), "Helvetica Neue", Arial, sans-serif;
-  --font-serif: var(--font-inria), "Inria Serif", "Times New Roman", serif;
+  --font-sans: "Aeonik", "Inter Variable", "Inter", "Helvetica Neue", Arial, sans-serif;
+  --font-serif: "Inria Serif", "Times New Roman", serif;
   --font-cjk: "PingFang SC", "PingFang TC", "Noto Sans SC", "Noto Sans TC", "Microsoft YaHei", "Microsoft JhengHei", sans-serif;
 }
 

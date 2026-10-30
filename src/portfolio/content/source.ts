@@ -1,38 +1,28 @@
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { defaultContent } from "./defaults";
-import { IS_STATIC_BUILD } from "./mode";
 import { normalizeContent } from "./normalize";
 import type { PortfolioContent } from "./types";
 
 /**
  * The one place a page asks for the site's content.
  *
- * Everything that renders the site (layout, home page, work pages, sitemap and
- * manifest) goes through `getSiteContent()` instead of reaching into the
- * storage layer, so the two deployment shapes differ in exactly one file:
+ * Content is resolved at build time, from a file in the repository — either the
+ * committed snapshot `content/published.json` or the authored defaults in
+ * `content/defaults.ts`.
+ * There is no database and no request-time lookup, which is what lets the whole
+ * site be `output: "export"`-ed into a folder any static host can serve.
  *
- * - **static** — content is baked in at build time. Either the site's authored
- *   defaults (`content/defaults.ts`) or a snapshot exported from a live
- *   installation (`content/published.json`, written by `npm run content:export`).
- *   No database driver is ever imported, which is what lets `output: "export"`
- *   produce a folder that runs on any static host.
- * - **postgres** — the original path, resolved lazily so `pg` only ends up in
- *   the server bundle when a server actually exists.
+ * To change the site, edit `published.json` (or `defaults.ts`) and rebuild —
+ * the deploy is the editor. `/admin` deliberately does not exist: a static site
+ * has no session to protect and nowhere to save a request, so a browser-only
+ * "studio" would only ever be a mock-up of one.
  */
-export type ContentSource = {
-  mode: "static" | "postgres";
-  getContent(): Promise<PortfolioContent>;
-  /** Timestamp for `sitemap.xml` when the source knows one. */
-  getUpdatedAt(): Promise<string | null>;
-};
-
 const PUBLISHED_FILE = path.join(process.cwd(), "src", "portfolio", "content", "published.json");
 
 /**
- * A snapshot committed by `npm run content:export`. Optional on purpose: a
- * fresh clone builds from the authored defaults without having to run anything
- * first.
+ * An optional content snapshot. Without one, a fresh clone builds from the
+ * authored defaults and needs nothing else.
  */
 function readPublishedSnapshot(): unknown | null {
   try {
@@ -44,42 +34,17 @@ function readPublishedSnapshot(): unknown | null {
   }
 }
 
-export const staticSource: ContentSource = {
-  mode: "static",
-  async getContent() {
-    const published = readPublishedSnapshot();
-    return published ? normalizeContent(published) : defaultContent;
-  },
-  async getUpdatedAt() {
-    try {
-      return existsSync(PUBLISHED_FILE) ? readFileSync(PUBLISHED_FILE, "utf8").match(/"exportedAt":\s*"([^"]+)"/)?.[1] ?? null : null;
-    } catch {
-      return null;
-    }
-  },
-};
-
-/**
- * Reads whatever the running server would render. Imported dynamically so the
- * PostgreSQL driver, `node:crypto` and the platform adapters stay out of the
- * static bundle entirely — in a static build this function is dead code.
- */
-export const postgresSource: ContentSource = {
-  mode: "postgres",
-  async getContent() {
-    const { loadContent } = await import("../server/content-handlers");
-    return loadContent();
-  },
-  async getUpdatedAt() {
-    return new Date().toISOString();
-  },
-};
-
-export function getContentSource(): ContentSource {
-  return IS_STATIC_BUILD ? staticSource : postgresSource;
+export async function getSiteContent(): Promise<PortfolioContent> {
+  const published = readPublishedSnapshot();
+  return published ? normalizeContent(published) : defaultContent;
 }
 
-/** Resolve the content for the current build shape. */
-export function getSiteContent(): Promise<PortfolioContent> {
-  return getContentSource().getContent();
+/** When the committed snapshot was exported, for `sitemap.xml`'s lastmod. */
+export async function getContentUpdatedAt(): Promise<string | null> {
+  try {
+    if (!existsSync(PUBLISHED_FILE)) return null;
+    return readFileSync(PUBLISHED_FILE, "utf8").match(/"(?:exportedAt|exportedAtIso)":\s*"([^"]+)"/)?.[1] ?? null;
+  } catch {
+    return null;
+  }
 }

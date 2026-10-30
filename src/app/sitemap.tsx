@@ -1,26 +1,22 @@
 import type { MetadataRoute } from "next";
-import { requireFreshRender } from "@/portfolio/content/mode";
-import { getContentSource, getSiteContent } from "@/portfolio/content/source";
+import { getContentUpdatedAt, getSiteContent } from "@/portfolio/content/source";
 import { siteUrl } from "@/portfolio/seo/site";
 
 /**
- * A metadata route is a route handler, and `output: "export"` only accepts a
- * handler that can be prerendered. Declaring the (empty) static params set is
- * how this file tells the exporter "yes, this one is buildable" without
- * pinning `dynamic` to a literal that the server build cannot use; during the
- * server build `requireFreshRender()` above keeps it per-request.
+ * `output: "export"` only accepts metadata routes that can be prerendered at
+ * build time; declaring the empty params set is what tells the exporter that
+ * this one is buildable (there is nothing to enumerate — it is a single file).
  */
 export function generateStaticParams() {
   return [];
 }
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  await requireFreshRender();
   const content = await getSiteContent();
   const origin = siteUrl().toString().replace(/\/$/, "");
-  // A static export must not claim "now" as the last modification, or every
-  // deployment would look changed to crawlers; it uses the build's content date.
-  const now = (await getContentSource().getUpdatedAt()) ?? new Date().toISOString();
+  // Never claim "now" as the last modification: every deployment would then
+  // look changed to crawlers. Use the committed snapshot's export date.
+  const now = (await getContentUpdatedAt()) ?? new Date().toISOString();
   return [
     { url: `${origin}/`, lastModified: now, changeFrequency: "monthly", priority: 1 },
     ...content.works.items.map((work) => ({

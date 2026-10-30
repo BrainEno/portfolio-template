@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { IS_STATIC_BUILD, requireFreshRender } from "@/portfolio/content/mode";
 import { getSiteContent } from "@/portfolio/content/source";
 import { absoluteUrl, pickText, siteUrl } from "@/portfolio/seo/site";
 import "@/portfolio/styles/work-detail.css";
@@ -12,7 +11,6 @@ import "@/portfolio/styles/work-detail.css";
  * list is not consulted there.
  */
 export async function generateStaticParams() {
-  if (!IS_STATIC_BUILD) return [];
   const content = await getSiteContent();
   return content.works.items.map((work) => ({ id: work.id }));
 }
@@ -43,7 +41,6 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
 
 /** Server-rendered project page: crawlable detail copy + detail images from the database. */
 export default async function WorkPage({ params }: Params) {
-  await requireFreshRender();
   const { id } = await params;
   const { content, work } = await findWork(id);
   if (!work) notFound();

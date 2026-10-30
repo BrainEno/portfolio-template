@@ -1,5 +1,0 @@
-# Automatic HTTPS (Let's Encrypt). DOMAIN comes from docker-compose / the environment.
-{$DOMAIN} {
-	encode zstd gzip
-	reverse_proxy web:3000
-}

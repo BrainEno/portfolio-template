@@ -1,16 +1,19 @@
-# 纯静态发布（无后端 / GitHub Pages / OSS / Nginx）
+# 静态发布（GitHub Pages / Netlify / OSS / nginx）
 
-这个仓库一直是「Next.js 服务端 + PostgreSQL CMS」。现在它同时支持**第三种形态**：
-`CONTENT_MODE=static` 时，构建产物是一整个可以扔到任意静态托管的文件夹 `out/` ——
-没有 Node、没有数据库、没有 `/api`、没有 `pg` 驱动。
+整站是一个静态导出：`npm run build:static` 产出 `out/`，任何能发文件的服务器都能托管。
+没有 Node 运行时、没有数据库、没有 `/api`。
 
 ## 一分钟上手
 
 ```bash
 npm ci
-npm run build:static          # ≈20 秒，产物在 out/
-npx serve out                 # 或 python -m http.server -d out 8080
+NEXT_PUBLIC_SITE_URL=https://example.com npm run build:static   # ≈20 秒，产物在 out/
+npm run preview                                                # http://localhost:3300
 ```
+
+`npm run preview` 是一个普通静态服务器（`scripts/preview.mjs`），行为和线上托管一致：
+目录 URL 解析到 `index.html`，找不到的路径返回 `404.html` + 404 状态码，缓存头和 `netlify.toml` 保持一致。
+如果某个页面在这里打不开，它在线上也打不开。
 
 `out/` 里是：
 
@@ -26,22 +29,24 @@ out/
 
 ## 内容从哪来
 
-静态构建有**两档**内容来源，都在 `src/portfolio/content/source.ts` 里：
+两个来源，都在 `src/portfolio/content/source.ts` 里，优先级从高到低：
 
 | 来源 | 什么时候用 | 怎么做 |
 |---|---|---|
-| `content/defaults.ts`（默认） | 从没连过数据库，或就想用代码里的默认文案 | 什么都不用做，直接 `npm run build:static` |
-| `content/published.json`（快照） | 已经在服务端/线上用 `/admin` 编辑过内容 | `npm run content:export` 把线上内容抓成快照，提交这个文件，再静态构建 |
+| `content/published.json` | 有自己的内容 | 直接编辑这个 JSON，提交后重新构建 |
+| `content/defaults.ts` | 全新模板 | 什么都不用做，直接构建（`published.json` 不存在时用它） |
 
-```bash
-# 从正在运行的服务端实例导出内容快照
-npm run content:export                              # 默认 http://localhost:3000
-CONTENT_URL=https://example.com npm run content:export
-git add src/portfolio/content/published.json
-```
+没有后台、没有数据库、没有浏览器内的编辑器：**内容在仓库里，发布就是部署**。
 
-快照就是 `/api/content` 的响应，和数据库里的 JSON 结构完全一致，所以「先在服务端编辑，
-再导出成静态站」是无损的。改完内容重新导出 + 重新构建即可。
+> 从旧版（带 PostgreSQL / `/admin` 的形态）迁移：在旧站点上把内容抓成快照再提交：
+>
+> ```bash
+> curl -s https://旧站点/api/content \
+>   | jq '{exportedAt: now | todate, content: .content}' \
+>   > src/portfolio/content/published.json
+> ```
+>
+> 旧的 `/api/media/<id>` 图片链接在新形态里不可用，请换成 `public/images/` 里的文件或外链。
 
 ## 必须设置：站点地址
 
@@ -54,61 +59,80 @@ NEXT_PUBLIC_SITE_URL=https://example.com npm run build:static
 
 （`SITE_URL` 也可以；两个都没设时会用 `http://localhost:3000`，`build:static` 会打印提醒。）
 
-## 部署到各家静态托管
+## Netlify
 
-### GitHub Pages
+仓库根目录的 `netlify.toml` 已经写好，不需要在 UI 里填构建命令：
+
+```toml
+[build]
+  command = "npm run build:static"
+  publish = "out"
+```
+
+步骤：把仓库推到 GitHub → Netlify → **Add new project → Import an existing project** → 选中仓库 →
+在 **Environment variables** 里加 `NEXT_PUBLIC_SITE_URL`（例如 `https://your-site.netlify.app`）→ Deploy。
+
+`netlify.toml` 里还带了三件线上需要的东西：
+
+- `_next/static`、`images`、`gltfs`、`fonts` 长缓存（`max-age=31536000, immutable`）；
+- `sw.js` 强制 `no-cache`（否则旧 Service Worker 会一直发旧文件）；
+- `/works/:id` → `/works/:id/` 的 301（旧链接、分享链接不会 404）。
+
+**没有** `@netlify/plugin-nextjs`：这里没有 serverless function 可跑，插件只会让部署变慢。
+
+## GitHub Pages
 
 ```bash
-NEXT_PUBLIC_SITE_URL=https://<用户名>.github.io/<仓库> npm run build:static
+NEXT_PUBLIC_SITE_URL=https://<用户名>.github.io/<仓库> NEXT_PUBLIC_BASE_PATH=/<仓库> npm run build:static
 npx gh-pages -d out          # 或把 out/ 推到 gh-pages 分支
 ```
 
-仓库自带 `.github/workflows/static.yml`，push 到 `main` 就会自动构建并发布到 Pages
-（首次需要在 Settings → Pages 里把 Source 选成 “GitHub Actions”）。
-**如果站点在子路径下**（`/仓库名/`），额外设置 `NEXT_PUBLIC_BASE_PATH=/仓库名`，
-构建时会自动加上 `basePath` 与 `assetPrefix`，站内链接和静态资源都会跟着前缀走。
+仓库自带 `.github/workflows/static.yml`，push 到 `main` 就自动构建并发布
+（首次需要在 Settings → Pages 里把 Source 选成 “GitHub Actions”；workflow 会自动加
+`NEXT_PUBLIC_BASE_PATH` 和 `.nojekyll`）。
 
-### 对象存储 / OSS / COS / S3
+**如果站点在子路径下**（`/仓库名/`），必须设置 `NEXT_PUBLIC_BASE_PATH=/仓库名`：
+构建时会加上 `basePath` 与 `assetPrefix`，站内链接和静态资源都会跟着前缀走。
+
+## 对象存储 / OSS / COS / S3
 
 ```bash
 NEXT_PUBLIC_SITE_URL=https://cdn.example.com npm run build:static
-aws s3 sync out/ s3://你的桶 --delete        # 或 ossutil cp -r out/ oss://你的桶/
+aws s3 sync out/ s3://你的桶 --delete        # 或 ossutil cp -r out/ --update oss://你的桶/
 ```
 
 注意两点：`works/<slug>/` 这类**目录索引**要开启「默认首页 index.html」；
 `_next/static/` 下的文件带内容哈希，可以放心 `Cache-Control: immutable`。
 
-### Nginx / 任意静态服务器
+## Nginx / 任意静态服务器
 
 ```nginx
 root /var/www/portfolio/out;
 index index.html;
 location / { try_files $uri $uri/ $uri/index.html =404; }
 location /_next/static/ { add_header Cache-Control "public, max-age=31536000, immutable"; }
+location = /sw.js { add_header Cache-Control "no-cache, max-age=0"; }
 ```
 
-## 和「服务端 + CMS」形态的对照
+## 排错
 
-| | `npm run build`（默认） | `npm run build:static` |
+| 现象 | 原因 | 处理 |
 |---|---|---|
-| 内容来源 | 请求时读 PostgreSQL，失败回落到默认文案 | 构建时读 `defaults.ts` / `published.json` |
-| 渲染 | 每次请求 SSR（`force-dynamic`） | 全部预渲染（`force-static` + `generateStaticParams`） |
-| `/admin` `/adam` | 完整 CMS | 只显示「静态构建」说明页，不提供编辑 |
-| `/api/*` | 有 | 不存在（导出时被排除） |
-| 依赖 | Node ≥ 20 + PostgreSQL（可无） | 只需要一个能发文件的服务器 |
-| `pg` / `node:crypto` | 进服务端包 | **完全不进产物** |
+| 作品页 404 | 目录索引没开（`works/slug/` 需要解析到 `index.html`） | 按上面的 nginx / OSS 配置开默认文档 |
+| 子路径下样式和 JS 全 404 | 少了 `NEXT_PUBLIC_BASE_PATH` | 重新构建，值就是子路径（`/repo`，带前导斜杠，不带尾斜杠） |
+| 部署后看到旧版本 | Service Worker 缓存 | 新 `sw.js` 会接管；确认它有 `no-cache` 头 |
+| `sitemap.xml` 全是 localhost | 构建时没设 `NEXT_PUBLIC_SITE_URL` | 设好后重新构建 |
+| 图片不显示 | `images.unoptimized` 模式下走的是 `public/` 里的原文件 | 检查路径大小写，Linux 上区分大小写 |
 
 ## 实现要点（给以后改代码的人）
 
-- 模式开关是**构建期常量**（`src/portfolio/content/mode.ts`），因为 Next 必须提前知道
-  它才能决定 `output`、路由段配置和哪些 route handler 存在。
-- 路由段配置不能写成变量（Next 要靠静态解析），所以「必须每次请求渲染」改成了在页面里
-  调用 `requireFreshRender()`（内部是 `next/server` 的 `connection()`），静态构建时这个调用
-  被编译期判断掉，页面就是可预渲染的。
-- 内容读取统一走 `getSiteContent()`，静态分支用 `node:fs` 读 JSON，服务端分支才
-  `await import("../server/content-handlers")` —— 这样 `pg` 永远不会被静态构建打进产物。
-- `next.config.ts` 在静态模式里设置 `output: "export"`、`trailingSlash: true`、
-  `images.unoptimized: true`、`pageExtensions: ["tsx"]`（把 `src/app/api/**/route.ts`
-  这类纯 `.ts` 的服务端文件排除在路由之外），并且不注册 `headers()`（导出模式不支持）。
-- `sitemap/robots/manifest` 从 `.ts` 改名为 `.tsx`：它们是 route handler，而静态导出要求
-  它们也能被预渲染，`pageExtensions` 的过滤才不会把它们一起排除。
+- `next.config.ts` 就是静态导出的配置：`output: "export"`、`trailingSlash: true`、
+  `images.unoptimized: true`、`pageExtensions: ["tsx"]`。没有服务端分支，所以没有任何
+  需要按环境切换的东西——只有 `NEXT_PUBLIC_BASE_PATH` 与 `NEXT_PUBLIC_SITE_URL` 两个构建期变量。
+- 内容读取统一走 `content/source.ts#getSiteContent()`：`node:fs` 读 `published.json`，
+  读不到就用 `defaults.ts`。所以构建产物里不会出现任何数据库驱动。
+- `sitemap/robots/manifest` 是 route handler，静态导出要求它们能被预渲染；每个文件里
+  `generateStaticParams()` 返回 `[]`，就是告诉 exporter「这个可以构建」。
+- 字体来自 `@fontsource`（`layout.tsx` 里 import CSS），不依赖构建期的网络请求，也不依赖
+  Google Fonts；构建可以在完全离线的机器上完成。
+- `sitemap.xml` 的 `lastmod` 取 `published.json` 的 `exportedAt`，避免每次部署都声称「刚刚更新」。

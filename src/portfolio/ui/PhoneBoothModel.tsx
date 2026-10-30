@@ -22,6 +22,7 @@ type Props = {
  */
 export function PhoneBoothModel({ src, fallback, spin = 0.16, plateText }: Props) {
   const hostRef = useRef<HTMLDivElement>(null);
+  const stillRef = useRef<HTMLImageElement>(null);
 
   useEffect(() => {
     const host = hostRef.current;
@@ -48,6 +49,16 @@ export function PhoneBoothModel({ src, fallback, spin = 0.16, plateText }: Props
         // already painted at this point and the cutout underneath must be
         // hidden in the same frame (a React re-render would let one frame of
         // the flat image show through the model).
+        // The flat cutout is switched off inline as well as by the `[data-ready]`
+        // rule: it carries a 0.6 s opacity transition for the hand-over, and a
+        // transition that never gets to run (throttled tab, reduced-motion
+        // emulation, a stalled compositor) would leave a second, paler booth
+        // ghosted behind the real one.
+        const still = stillRef.current;
+        if (still) {
+          still.style.transition = "none";
+          still.style.opacity = "0";
+        }
         host.dataset.ready = "true";
       } catch (error) {
         // A failed decode / unsupported WebGL must not break the section.
@@ -89,7 +100,7 @@ export function PhoneBoothModel({ src, fallback, spin = 0.16, plateText }: Props
 
   return (
     <div ref={hostRef} className="contact-booth-canvas" aria-hidden="true">
-      <img className="contact-booth-still" src={fallback} alt="" loading="lazy" decoding="async" />
+      <img ref={stillRef} className="contact-booth-still" src={fallback} alt="" loading="lazy" decoding="async" />
     </div>
   );
 }

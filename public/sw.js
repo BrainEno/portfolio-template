@@ -1,14 +1,13 @@
 /* Offline support for the portfolio (no build step, no dependencies).
  *
- *  - /_next/static, /images, /fonts, /icons : cache-first (content-hashed or rarely changing)
- *  - /api/media/<id>                         : cache-first (ids are immutable)
+ *  - /_next/static, /images, /fonts, /icons, /gltfs : cache-first (content-hashed or rarely changing)
  *  - page navigations                        : network-first, fall back to the cached copy, then /offline
- *  - /api/content (GET)                      : network-first, fall back to the cached copy
- *  - every other /api/* and /admin           : never cached (always live / authenticated)
+ *  - manifest.webmanifest                    : network-first, fall back to the cached copy
+ *  - a navigation that goes offline           : the cached copy, then /offline
  *
  * Bump VERSION to drop all caches on the next visit.
  */
-const VERSION = "v1";
+const VERSION = "v3";
 const STATIC = `pf-static-${VERSION}`;
 const PAGES = `pf-pages-${VERSION}`;
 const CORE = ["/", "/offline", "/manifest.webmanifest", "/icons/icon-192.png"];
@@ -31,8 +30,7 @@ self.addEventListener("activate", (event) => {
 const isStaticAsset = (url) =>
   url.pathname.startsWith("/_next/static/") ||
   url.pathname.startsWith("/_next/image") ||
-  /^\/(images|fonts|icons)\//.test(url.pathname) ||
-  /^\/api\/media\//.test(url.pathname);
+  /^\/(images|fonts|icons|gltfs)\//.test(url.pathname);
 
 async function cacheFirst(request, cacheName) {
   const cache = await caches.open(cacheName);
@@ -65,7 +63,7 @@ self.addEventListener("fetch", (event) => {
   if (request.method !== "GET") return;
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
-  if (url.pathname.startsWith("/admin") || request.headers.has("range")) return;
+  if (request.headers.has("range")) return;
 
   if (isStaticAsset(url)) {
     event.respondWith(cacheFirst(request, STATIC).catch(() => new Response("", { status: 504 })));
@@ -75,7 +73,7 @@ self.addEventListener("fetch", (event) => {
     event.respondWith(networkFirst(request, PAGES, "/offline"));
     return;
   }
-  if (url.pathname === "/api/content" || url.pathname === "/manifest.webmanifest") {
+  if (url.pathname === "/manifest.webmanifest") {
     event.respondWith(networkFirst(request, PAGES));
   }
 });

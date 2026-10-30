@@ -1073,9 +1073,14 @@ body {
      never reads as a white card sliding over a dark scene — by the time it is
      opaque, the screen behind it is already white. */
   margin-top: -56vh;
-  /* Deliberately not clipped: the booth starts its entrance on the (now
-     white) television screen above the section's top edge, so it has to be
-     allowed to travel outside this box. */
+  /* Only the *horizontal* axis is clipped. The booth starts its entrance on
+     the (now white) television screen above the section's top edge, so it has
+     to be able to travel outside the box vertically — but its off-screen
+     start pose sits 92vw to the right, and so does the marquee's second track,
+     which used to widen the document by a whole viewport and let every device
+     scroll sideways. `clip` (not `hidden`) keeps the vertical axis visible and
+     creates no scroll container, so the pinned scroll timeline is unaffected. */
+  overflow-x: clip;
   background: var(--paper);
   color: #000;
 }
@@ -1087,8 +1092,22 @@ body {
   min-height: 100vh;
   min-height: 100svh;
   /* Symmetric outer gutter: the headline starts exactly as far from the left
-     edge as the booth's silhouette ends from the right one. */
-  padding: 9svh 5vw 4svh;
+     edge as the booth's silhouette ends from the right one. No top padding:
+     the booth's crown is meant to sit on the sheet's top edge. */
+  padding: 0 5vw 4svh;
+}
+
+/* The stage is everything above the marquee. Anchoring the booth to *this*
+   box rather than to viewport percentages is what makes the floor line correct
+   on any screen: the plinth lands on the stage's bottom edge (the top of the
+   running strip) whether the viewport is 720px tall or 21:9, and whether the
+   marquee's type happens to be larger than usual. */
+.contact-stage {
+  position: relative;
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
 }
 
 .contact-headlines {
@@ -1232,18 +1251,20 @@ body {
      above the marquee too: the plinth stands on the floor rule, so the strip
      has to pass behind it instead of cropping it. */
   z-index: 4;
-  /* Stretched between the top edge and a floor line *above* the marquee, so
-     the plinth rests on the rule and the strip passes underneath it instead of
-     through it — the base never touches the running text. Height (and with the
-     9:16 silhouette aspect the width too) is whatever that span gives: 77.6svh,
-     a tenth smaller than the version that stood on the marquee. The column is
-     nudged 0.6vw further right than the text gutter: the sketch wants the
+  /* Stretched between the sheet's top edge and a floor line *above* the
+     marquee, so the plinth rests on the rule and the strip passes underneath it
+     instead of through it — the base never touches the running text. Height
+     (and with the 9:16 silhouette aspect the width too) is whatever that span
+     gives. The column is nudged right of the text gutter: the sketch wants the
      copy to move towards the booth, and the extra hair of air is what lets the
      type grow without running onto the model. It also carries no transform of
      its own — GSAP owns `transform` for the entrance. */
   top: 0;
-  bottom: 22.4svh;
-  right: 4.4vw;
+  bottom: clamp(8px, 1.2svh, 18px);
+  /* The stage is already inset by the sheet's 5vw gutter, so 4.4vw from its
+     right edge would read as 9.4vw from the viewport: compensate to keep the
+     column 4.4vw from the paper edge, as drawn. */
+  right: -0.6vw;
   height: auto;
   aspect-ratio: 9 / 16;
   will-change: transform;
@@ -1406,6 +1427,70 @@ body {
 }
 
 /* Mobile ------------------------------------------------------------- */
+/* Contact: one column below 1024px -----------------------------------
+   A three-line display headline and a 9:16 booth cannot share one row on a
+   portrait tablet: the booth eats half the width and the type has to shrink
+   until it stops being a headline. Below 1024px the sheet therefore stacks —
+   copy across the full width, booth underneath, aligned to the right — which is
+   also what a phone gets. Everything else on this page keeps its own layout. */
+@media (max-width: 1023px), (max-aspect-ratio: 11/10) {
+  .contact {
+    margin-top: -40vh;
+  }
+
+  .contact-inner {
+    padding: 0 var(--gutter) 28px;
+  }
+
+  .contact-stage {
+    /* The copy is bottom-aligned inside the stage, so the sheet keeps its
+       head-room without a padding value that would also push the booth down. */
+    padding-top: 11vh;
+  }
+
+  .contact-line {
+    /* Same contract as the two-column sheet: this is the no-JS / first-paint
+       ceiling, and `Contact`'s fit overrides it through `--contact-fs`. It has
+       to stay a `var()` — a bare `font-size` here would shadow the override. */
+    font-size: var(--contact-fs, min(13.4vw, 132px));
+    -webkit-text-stroke-width: 1px;
+  }
+
+  .contact-headlines {
+    max-width: none;
+    margin-top: 0;
+    margin-left: 0;
+    margin-bottom: 3vh;
+  }
+
+  .contact-booth {
+    position: relative;
+    inset: auto;
+    align-self: flex-end;
+    height: clamp(280px, 54svh, 560px);
+    aspect-ratio: 9 / 16;
+    margin: 0 -2vw 3vh 0;
+  }
+
+  .contact-marquee {
+    margin: 0 calc(var(--gutter) * -1) 22px;
+    font-size: clamp(20px, 5.4vw, 52px);
+    padding: 10px 0;
+  }
+
+  .contact-footer {
+    grid-template-columns: repeat(2, minmax(0, max-content));
+    gap: 10px 3vw;
+    font-size: 13px;
+  }
+
+  .contact-copyright,
+  .contact-credit {
+    grid-column: auto;
+    justify-self: start;
+  }
+}
+
 @media (max-width: 767px) {
   :root {
     --gutter: 20px;
@@ -1661,38 +1746,6 @@ body {
 
   .tv-phone-spacer { height: 90vh; }
   .tv-exit-spacer { height: 96vh; }
-  .contact { margin-top: -40vh; }
-
-  .contact-inner {
-    padding: 12vh var(--gutter) 28px;
-  }
-
-  .contact-line {
-    font-size: 13.4vw;
-    -webkit-text-stroke-width: 1px;
-  }
-
-  .contact-headlines {
-    max-width: none;
-    margin-top: 0;
-  }
-
-  .contact-booth {
-    position: relative;
-    top: auto;
-    bottom: auto;
-    right: auto;
-    align-self: flex-end;
-    height: 62svh;
-    aspect-ratio: 9 / 16;
-    margin: -2vh -4vw 3vh 0;
-  }
-
-  .contact-marquee {
-    margin: 0 calc(var(--gutter) * -1) 24px;
-    font-size: 8vw;
-    padding: 10px 0;
-  }
 
   .contact-footer {
     grid-template-columns: 1fr;

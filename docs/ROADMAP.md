@@ -4,6 +4,24 @@
 P1（体验与健壮性）→ P2（长期演进）。反馈新问题时请附：现象截图、
 复现路径（URL/滚动位置/语言/桌面或移动端）、控台报错原文。
 
+## 本轮已交付（第七轮，2026-10-30）
+
+1. **删除 `/admin`，整站只做静态页**：路由、`portfolio/admin/*`（5 个文件）、`portfolio/client/*`
+   （草稿存储与订阅）、`admin.css`、`content:export` 脚本一并移除，约 −1,300 行。
+   内容回到仓库：`content/published.json`（有就用）/ `content/defaults.ts`（模板），
+   发布 = 提交 + 重新构建。
+2. **清理服务端残留**：`server/*`、`api/*`、`db/*`、drizzle、`pg` / `@netlify/database` /
+   `@opennextjs/cloudflare` / `wrangler`、Docker 与 VPS 脚手架、`export/react-router/` 全部删除；
+   安装包 679 → 380。
+3. **Netlify 改为纯静态托管**：`npm run build:static` → `out/`，去掉 `@netlify/plugin-nextjs`，
+   补长缓存、`sw.js` no-cache、`/works/:id` 301。
+4. **多尺寸修正**：修掉整站横向溢出（`.contact` 的 `overflow-x: clip`）；Contact 改为
+   「舞台 + 地板线」结构；新增竖屏断点；字号拟合改用探针 + `ResizeObserver`，不再依赖
+   `document.fonts.ready`；电话亭兜底图不再叠影。
+5. **字体自托管**（`@fontsource`），构建不再依赖 Google Fonts。
+6. **lint 归零**：`eslint` 从 5 error → 0 error（草稿与语言偏好改用 `useSyncExternalStore`
+   后一并解决，随 `/admin` 删除彻底消失）。
+
 ## 本轮已交付（第六轮，2026-10-29）
 
 1. **多平台运行时数据库解析器**
