@@ -21,7 +21,6 @@ npm run preview                                                # http://localhos
 out/
 ├── index.html                     # 首页（完整预渲染 HTML，SEO 友好）
 ├── works/<slug>/index.html        # 每个作品一页
-├── admin/index.html               # 本地编辑器（见下）
 ├── sitemap.xml  robots.txt  manifest.webmanifest  sw.js
 ├── _next/…                        # JS/CSS/字体（带内容哈希）
 ├── images/  gltfs/  icons/        # 静态资源
@@ -34,14 +33,20 @@ out/
 
 | 来源 | 什么时候用 | 怎么做 |
 |---|---|---|
-| `content/published.json`（快照） | 你用 `/admin` 改过内容 | 点 Publish 下载，覆盖这个文件并提交 |
-| `content/defaults.ts`（默认） | 全新模板、没发布过 | 什么都不用做，直接构建 |
+| `content/published.json` | 有自己的内容 | 直接编辑这个 JSON，提交后重新构建 |
+| `content/defaults.ts` | 全新模板 | 什么都不用做，直接构建（`published.json` 不存在时用它） |
 
-`/admin` 是**本地编辑器**：改动写进本浏览器 localStorage，首页立刻预览；Publish 只是把
-`published.json` 下载给你。所以「发布」这个动作等于**提交一个文件**，没有服务器参与。
+没有后台、没有数据库、没有浏览器内的编辑器：**内容在仓库里，发布就是部署**。
 
-> 从旧版（带 PostgreSQL 的形态）迁移：在那个站点上跑
-> `CONTENT_URL=https://旧站点 npm run content:export`，把生成的 `published.json` 提交过来即可。
+> 从旧版（带 PostgreSQL / `/admin` 的形态）迁移：在旧站点上把内容抓成快照再提交：
+>
+> ```bash
+> curl -s https://旧站点/api/content \
+>   | jq '{exportedAt: now | todate, content: .content}' \
+>   > src/portfolio/content/published.json
+> ```
+>
+> 旧的 `/api/media/<id>` 图片链接在新形态里不可用，请换成 `public/images/` 里的文件或外链。
 
 ## 必须设置：站点地址
 

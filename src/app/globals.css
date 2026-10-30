@@ -1,4 +1,4 @@
-/* Shared design tokens: the index page and /admin read the same fonts. */
+/* Shared design tokens: the index page, the work pages and the offline shell. */
 @font-face {
   /* Licensed face: install it locally, or drop Aeonik-Regular.woff2 into
      public/fonts and add a url(...) source here. Falls back to Inter. */

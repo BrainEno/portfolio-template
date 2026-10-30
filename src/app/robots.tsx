@@ -13,7 +13,7 @@ export function generateStaticParams() {
 export default async function robots(): Promise<MetadataRoute.Robots> {
   const origin = siteUrl().toString().replace(/\/$/, "");
   return {
-    rules: [{ userAgent: "*", allow: "/", disallow: ["/admin", "/api/", "/offline"] }],
+    rules: [{ userAgent: "*", allow: "/", disallow: ["/offline"] }],
     sitemap: `${origin}/sitemap.xml`,
     host: origin,
   };

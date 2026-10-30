@@ -8,21 +8,21 @@ import type { PortfolioContent } from "./types";
  * The one place a page asks for the site's content.
  *
  * Content is resolved at build time, from a file in the repository — either the
- * snapshot a live install exported (`npm run content:export` →
- * `content/published.json`) or the authored defaults in `content/defaults.ts`.
+ * committed snapshot `content/published.json` or the authored defaults in
+ * `content/defaults.ts`.
  * There is no database and no request-time lookup, which is what lets the whole
  * site be `output: "export"`-ed into a folder any static host can serve.
  *
- * Editing happens in `/admin`: it writes a draft to this browser's localStorage
- * so the site previews the change instantly, and can download `published.json`
- * which you commit to publish for everyone.
+ * To change the site, edit `published.json` (or `defaults.ts`) and rebuild —
+ * the deploy is the editor. `/admin` deliberately does not exist: a static site
+ * has no session to protect and nowhere to save a request, so a browser-only
+ * "studio" would only ever be a mock-up of one.
  */
 const PUBLISHED_FILE = path.join(process.cwd(), "src", "portfolio", "content", "published.json");
 
 /**
- * A snapshot committed by `npm run content:export` or downloaded from
- * `/admin`. Optional on purpose: a fresh clone builds from the authored
- * defaults without having to run anything first.
+ * An optional content snapshot. Without one, a fresh clone builds from the
+ * authored defaults and needs nothing else.
  */
 function readPublishedSnapshot(): unknown | null {
   try {

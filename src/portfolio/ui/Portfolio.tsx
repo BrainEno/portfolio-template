@@ -13,7 +13,6 @@ import {
   scrollToSection,
   setupChoreography,
 } from "../scroll/choreography";
-import { useLiveContent } from "../client/useLiveContent";
 import { cx } from "./cx";
 import { Contact, Hero, Journey, Works } from "./sections";
 
@@ -132,9 +131,8 @@ function Cursor() {
   return <div ref={ref} className="cursor" aria-hidden="true"><span className="cursor-dot" /></div>;
 }
 
-export default function Portfolio({ content: bakedContent }: { content: PortfolioContent }) {
-  // The build's content is the floor; a studio draft in this browser overrides it.
-  const { content, revision } = useLiveContent(bakedContent);
+/** The index page: content is exactly what the build baked in. */
+export default function Portfolio({ content }: { content: PortfolioContent }) {
   const scopeRef = useRef<HTMLDivElement>(null);
   const lastWorkRef = useRef(-1);
   // Language preference: the stored value is read as an external store rather
@@ -150,7 +148,7 @@ export default function Portfolio({ content: bakedContent }: { content: Portfoli
   useEffect(() => {
     document.documentElement.lang = lang === "zh" ? "zh-Hans" : "en";
     document.title = t(content.identity.pageTitle, lang) || content.identity.name;
-  }, [lang, content.identity, revision]);
+  }, [lang, content.identity]);
 
   const changeLanguage = useCallback((next: Language) => {
     setLangOverride(next);
@@ -252,9 +250,9 @@ export default function Portfolio({ content: bakedContent }: { content: Portfoli
       lastWork: () => lastWorkRef.current,
     });
     return teardown;
-    // `revision` changes when the demo draft is edited in another tab, so the
-    // scroll choreography re-measures against the new work list.
-  }, [lang, layoutKey, preview, revision]);
+    // `layoutKey` bumps on a viewport-size change: the choreography measures the
+    // DOM, so it has to be rebuilt against the new geometry.
+  }, [lang, layoutKey, preview]);
 
   const themeStyle = {
     "--accent": content.theme.accent,

@@ -6,7 +6,6 @@
     "dev:turbo": "next dev --turbo",
     "build": "next build",
     "build:static": "node scripts/build-static.mjs",
-    "content:export": "node scripts/content-export.mjs",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "art": "node scripts/art/generate-art.mjs",

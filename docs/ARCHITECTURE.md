@@ -15,29 +15,26 @@
 | `Dockerfile`、`docker-compose.yml`、`deploy/`、`scripts/{setup,deploy,vps-install,doctor}.sh` | 不再需要跑一个进程 |
 | `export/react-router/`（第二份工程）、`/adam` 只读路由、`admin/Login.tsx` | 重复入口；静态站没有「登录」这回事 |
 | `docs/{DEPLOY,PLATFORM_DEPLOY,NETLIFY_DEPLOY,SETUP}.md` | 并入 `STATIC_EXPORT.md` / `QUICKSTART.md` |
+| `/admin` 路由、`portfolio/admin/*`、`portfolio/client/*`、`admin.css`、`content:export` 脚本 | 静态站没有可写的地方，浏览器内的编辑器只是模拟器（见第 2 节） |
 
 保留并强化的部分：`src/portfolio` 作为与路由解耦的领域模块、`content/` 作为唯一内容契约、
-`/admin` 作为编辑器、`public/sw.js` 离线缓存、SEO/PWA 全套。
+`public/sw.js` 离线缓存、SEO/PWA 全套。
 
 ## 2. 当前结构与数据流
 
 ```
 浏览器 ── / ──► page.tsx ─ getSiteContent() ─► content/published.json  （有就用）
                                               └─ content/defaults.ts    （没有就用）
-                              └► Portfolio(content)
-                                    └ useLiveContent：本浏览器有草稿就用草稿（localStorage + BroadcastChannel）
-
-/admin ──► AdminApp（无会话、无网络请求）
-           编辑 ─► saveDemoContent（400ms 防抖写 localStorage）→ 首页实时变
-           Publish ─► 浏览器下载 published.json ─► 提交到 src/portfolio/content/ ─► 重新构建
+                              └► Portfolio(content)   ← 内容就是构建时的那一份，没有任何运行时覆盖
 ```
 
 - **内容来源**：`content/source.ts#getSiteContent()` 是唯一入口，`node:fs` 读构建期快照，
-  读不到就退回 `defaults.ts`。没有任何数据库分支，所以产物里不可能出现数据库驱动。
-- **草稿覆盖**：`client/useLiveContent.ts` 订阅 localStorage。访问者没开过编辑器就没有草稿，
-  看到的就是构建时的那份内容——这是「本地预览」和「线上内容」之间唯一的桥。
-- **发布**：没有写接口，所以「发布」= 把一个 JSON 文件提交回仓库。`/admin` 的 Publish 只做
-  `Blob` 下载，`Ctrl/Cmd+S` 同效。
+  读不到就退回 `defaults.ts`。没有数据库分支，也没有客户端草稿覆盖——访问者看到的就是构建出来的那一份。
+- **发布**：改 `published.json`（或 `defaults.ts`）→ 提交 → CI 重新导出。部署即发布。
+- **没有 `/admin`**：静态站没有会话可保护、没有接口可写，浏览器内的「编辑器」只能是个模拟器：
+  改动存本地、再由用户手动导出文件提交。既然发布本来就是提交一个文件，那一步就没必要多一层。
+  于是 `/admin` 路由与整套 `portfolio/admin/*`、`portfolio/client/*` 一并删除（约 1,300 行）。
+  内容出错时由 TypeScript 在 `types.ts` 上兜底，而不是由表单校验兜底。
 
 ## 3. SEO
 
@@ -45,7 +42,7 @@
 - `page.tsx`：JSON-LD（WebSite + Person + 每个作品 CreativeWork）；内容经 SSR 输出，爬虫无需执行 JS 即可读取全部文案。
 - `/works/[id]`：每个作品独立可收录页面（标题、详情介绍、详情图、BreadcrumbList）。
 - `robots.txt`、`sitemap.xml`（含全部作品页）、`manifest.webmanifest`、`icon.svg`、`apple-icon.png`——均由构建期内容生成。
-- `/admin`、`/offline` 设为 noindex / Disallow。
+- `/offline` 设为 noindex / Disallow。
 - 站点 URL 在**构建期**定死（`NEXT_PUBLIC_SITE_URL` → `SITE_URL` → 平台注入变量 → localhost，见 `seo/site.ts`），
   静态托管没有请求时的 Host 可读。
 - `sitemap.xml` 的 `lastmod` 取 `published.json` 的 `exportedAt`，而不是构建时间，否则每次部署都等于「全站更新」。
@@ -59,7 +56,7 @@
 | `/_next/static`、`/images`、`/fonts`、`/icons`、`/gltfs` | cache-first |
 | 页面导航 | network-first → 缓存副本 → `/offline` |
 | manifest | network-first，离线读缓存 |
-| `/admin`、非 GET | 不缓存 |
+| 非 GET | 不缓存 |
 
 `PwaRegister` 仅在生产构建注册；开发模式反而会注销旧 SW。manifest 提供 192/512/maskable 图标与快捷方式，可安装为桌面应用。
 更新缓存：修改 `sw.js` 的 `VERSION`。
@@ -154,8 +151,7 @@ Hero、肖像（含重影层）、画廊、两张点缀图、电视封面、作�
 
 ## 7. 已知限制 / 后续
 
-- 后台界面文案为英文（含少量中文提示）；多语言化可在 `admin/` 内集中处理。
-- 编辑器里的草稿只在本浏览器，且受 localStorage 配额限制（单图 ≤ 1.4 MB）；跨设备靠 Data 页签的备份文件。
+- 内容改动没有图形界面：`published.json` 是 JSON，字段含义见 `docs/QUICKSTART.md` 与 `content/types.ts`。
 - 电视外框为矢量原创插画，可在 Television 页签校准玻璃位置后替换为自己的照片；电话亭为上传的 glTF 模型。
 - 仓库同时保留原始 `telephone.gltf`（38 MB）与优化后的 `.glb`（2.15 MB），只有 `.glb` 参与运行时加载；
   若不需要再修改模型，可移除原始 `.gltf` 以减小仓库体积。

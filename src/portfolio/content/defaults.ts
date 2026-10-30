@@ -4,10 +4,10 @@ import type { PortfolioContent } from "./types";
  * Template content.
  *
  * Two jobs:
- *  1. the production defaults when nothing has been published yet;
- *  2. the mock dataset used by the database-free demo mode (/admin in a
- *     browser cache) — the JSON shape is identical to
- *     what is stored in PostgreSQL, so a later `Restore backup` is lossless.
+ *  1. the production content when `content/published.json` is absent;
+ *  2. the reference dataset for the template: every field the site renders is
+ *     spelled out here, in both languages, so copying this file is the quickest
+ *     way to start a new site without touching a single component.
  *
  * Chinese copy is Simplified (简体中文); the English column is kept at the same
  * information density so both languages fill the layout alike.

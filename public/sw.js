@@ -3,11 +3,11 @@
  *  - /_next/static, /images, /fonts, /icons, /gltfs : cache-first (content-hashed or rarely changing)
  *  - page navigations                        : network-first, fall back to the cached copy, then /offline
  *  - manifest.webmanifest                    : network-first, fall back to the cached copy
- *  - /admin                                  : never cached (it edits a local draft, not a page)
+ *  - a navigation that goes offline           : the cached copy, then /offline
  *
  * Bump VERSION to drop all caches on the next visit.
  */
-const VERSION = "v2";
+const VERSION = "v3";
 const STATIC = `pf-static-${VERSION}`;
 const PAGES = `pf-pages-${VERSION}`;
 const CORE = ["/", "/offline", "/manifest.webmanifest", "/icons/icon-192.png"];
@@ -63,7 +63,7 @@ self.addEventListener("fetch", (event) => {
   if (request.method !== "GET") return;
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
-  if (url.pathname.startsWith("/admin") || request.headers.has("range")) return;
+  if (request.headers.has("range")) return;
 
   if (isStaticAsset(url)) {
     event.respondWith(cacheFirst(request, STATIC).catch(() => new Response("", { status: 504 })));
