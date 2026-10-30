@@ -1,0 +1,53 @@
+name: Static site
+
+# Builds the pure-static export (CONTENT_MODE=static → out/) and publishes it to
+# GitHub Pages. Nothing here talks to a database: the build reads
+# `content/defaults.ts` or the committed `content/published.json` snapshot.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Build static export
+        env:
+          # Project sites live at /<repo>/ — a user/organisation site needs these
+          # two values cleared instead.
+          NEXT_PUBLIC_BASE_PATH: /${{ github.event.repository.name }}
+          NEXT_PUBLIC_SITE_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}
+        run: npm run build:static
+      # Pages needs a .nojekyll marker, or files/directories starting with an
+      # underscore (`_next/`) are dropped from the published output.
+      - run: touch out/.nojekyll
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: out
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

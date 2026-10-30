@@ -23,7 +23,8 @@
 ## 2. 当前结构与数据流
 
 ```
-浏览器 ── / ──► page.tsx ─ loadContent() ─► storage.readContent()
+浏览器 ── / ──► page.tsx ─ getSiteContent() ─► content/published.json [Static]
+                              │                └─ storage.readContent()
                               │                 ├─ Postgres(site_content)         [Live]
                               │                 └─ 内存默认值 defaultContent(mock) [Demo]
                               └► Portfolio(content, mode)
@@ -32,8 +33,15 @@
           编辑 ─► Live: PUT /api/content (发布)   Demo: saveDemoContent (400ms 自动写缓存 → 首页实时变)
 ```
 
+- **内容来源**（`content/source.ts#getSiteContent`，第 2 节的 `loadContent()` 已并入这一层）：`CONTENT_MODE=static`
+  时读构建期快照（`content/published.json`，没有就退回 `content/defaults.ts`，无需任何服务端）；否则照旧询问存储层。`pg` 只在 postgres 分支用
+  动态 `import()` 载入，静态导出的产物里不含数据库代码。
 - **模式判定**（`server/backend.ts#probeBackend`，15 s 缓存）：能连库并读到表 → `postgres`；否则 `demo`。
+  静态导出没有可探的服务端，`content/mode.ts` 在构建期就把结果定成 `static`（`IS_STATIC_BUILD`）。
   一旦 `postgres`，`getStorage()` 只返回数据库存储，浏览器草稿与 mock 不再被读取——即**自动废除假数据**。
+- **渲染策略**：`content/mode.ts#requireFreshRender()` 是每个需要最新内容的页面/元数据的第一行——服务端形态下它是
+  空操作（维持 `force-dynamic` 的实时性），静态形态下它就是「这里必须预先渲染」的断言，防止某页悄悄退化成动态路由
+  而让 `output: "export"` 构建失败。详见 `docs/STATIC_EXPORT.md`。
 - **连接解析**（`server/connection.ts`）：Cloudflare Hyperdrive → Cloudflare 变量 → `process.env` 多个键 → `@netlify/database`。
 - **建表**（`server/storage.ts#ensureSchema`）：Netlify 校验迁移已执行；其他平台 `create table if not exists`。
 
@@ -84,11 +92,33 @@ Hero、肖像（含重影层）、画廊、两张点缀图、电视封面、作�
    并淡入，读者第一眼看到的就是完整的字行；文字没有 mask 位移，字距/行高不会在滚动中变化。
    触发点比上一版提前 8%，白场还在膨胀时字就已经在往上走。
 7. 版式是**底对齐 + 满高**：`.contact-headlines` 用 `margin-top: auto` 压到走马灯正上方；`.contact-booth` 改为
-   `top: 0` / `bottom: 13.7svh` / `right: 7.5vw`——顶部贴到版面边际、底座踩在走马灯上沿那条通栏细线（也就是这张「纸」的地板线）上。
-   于是电话亭是**能吃到的最大尺寸**：1280×800 下画布 799–1188 / 0–691（389×691，约 30vw×86svh，比上一版高 +11%），
-   1440×900 下 438×777，1920×1080 下 526×933。再大就只能压到走马灯上了。
+   `top: 0` / `bottom: 22.4svh` / `right: 4.4vw`——顶部贴到版面边际，底座落在走马灯上沿**上方**的一条地板上，
+   与滚动的字条留出空隙（底座绝不压在字条上）。高度因此收到 77.6svh，比上一版小约一成：
+   1280×800 下 349×621、1440×900 下 393×698、1920×1080 下 471×838；底座下沿分别落在 621 / 698 / 838，
+   而走马灯上沿在 633 / 712 / 841，任何尺寸都不相碰。
+   标题块同时被推**上**一点、拉近走马灯（`margin-bottom: 4.2vw`），并向**右**挪 0.8vw——空出来的中间地带
+   正好给「MARQUEE MOON」这一行。字号不是写死的 vw，而是被**到电话亭的间距**限制：
+   `clamp(38px, min(8.9vw, (88.7vw − 38.9svh) / 8.3), 176px)`，即「剩下多少宽度 ÷ 这行每 em 占的宽度」，
+   所以无论窗口多宽多矮都不会撞上模型（1280 下 99.3px、1440 下 111.7px、1920 下 154.6px）。
+   8.3 是当前字体的 em 宽度，换字体就会变，因此 `sections.tsx#Contact` 在挂载 / resize / 字体就绪后
+   用 Range 量一次真实字宽，只在**会撞上时**往下压（写进 `--contact-fs`），CSS 的 clamp 保留为上限。
+   移动端（<768px）电话亭改为在标题下方堆叠，这一步自动跳过。
 
 **Contact 排版**：`.contact` 不再有圆角前沿与上投影，也不做 `overflow: hidden`（电话亭要从 section 边界之外入场）。
+
+**作品区换台（`ui/TvShowreel.tsx`）**：悬停作品行时，电视不是淡入淡出，而是**换台**——失掉场同步、雪花、重新锁定。
+和参考站（danielspatzek.com）的做法对齐，但用三层便宜的 DOM 复刻，整段约 0.58s：
+
+1. `0–0.11s`：正在播的画面 `scaleY → 0.02` 同时 `brightness 3.4 / saturate 0`，在 `0.09s` 起淡出——画面塌成一条亮线；
+2. `0.06–0.34s`：`.tv-sync-line` 白色水平亮带在玻璃中央亮起再散开；
+3. `0.10–0.52s`：`.tv-static`（运行时生成一张 160² 的噪点图当 repeating background，`steps(9)` 抖动背景位置）
+   与 `.tv-roll`（横扫的白色亮条）接管屏幕，`0.20s` 在雪花**底下**换掉图源；
+4. `0.26–0.50s`：新画面 `scaleY → 1`（`power3.out`）+ 滤镜锁回，此时雪花仍是满屏，于是新频道是「从雪花里解出画面」；
+5. `0.42–0.58s`：雪花与亮条淡出，频道稳定。
+
+关键在**层序**：`.tv-static` 的 `z-index` 必须高于玻璃 / 亮条（5，`.tv-roll` 6，`.tv-sync-line` 6），
+否则雪花只是「贴在旧画面上的一层贴花」，换台会穿帮。`prefers-reduced-motion` 下整段跳过，只换图。
+`NODE_ENV !== "production"` 时暴露 `window.__tvTl` / `__tvRate`，供截图脚本把 0.58s 放慢到逐帧检查。
 
 **电话亭（3D 模型）入场**：从**右下角**抛出、沿一条向上鼓起的弧线落在左上方的静止位，不是对角线位移，也不是从小到大缩放：
 

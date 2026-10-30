@@ -1,9 +1,7 @@
 import type { Metadata } from "next";
 import AdminApp from "@/portfolio/admin/AdminApp";
-import { probeBackend } from "@/portfolio/server/db";
+import { IS_STATIC_BUILD, requireFreshRender } from "@/portfolio/content/mode";
 import "@/portfolio/styles/admin.css";
-
-export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "Studio preview — /adam",
@@ -19,9 +17,11 @@ export const metadata: Metadata = {
  * being a preview and points at the real, persisted studio.
  */
 export default async function AdamPreviewPage() {
-  const status = await probeBackend(true);
+  await requireFreshRender();
+  const { probeBackend } = IS_STATIC_BUILD ? { probeBackend: null } : await import("@/portfolio/server/db");
+  const status = probeBackend ? await probeBackend(true) : null;
 
-  if (status.mode === "postgres" && status.connected) {
+  if (status?.mode === "postgres" && status.connected) {
     return (
       <main className="ad-root ad-center">
         <div className="ad-login-card">

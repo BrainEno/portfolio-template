@@ -5,6 +5,8 @@
     "dev": "next dev --webpack",
     "dev:turbo": "next dev --turbo",
     "build": "next build",
+    "build:static": "node scripts/build-static.mjs",
+    "content:export": "node scripts/content-export.mjs",
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",

@@ -779,18 +779,70 @@ body {
    image (no screen-blend lift) with the tube's scanlines, phosphor tint
    and edge falloff laid over it. */
 .tv-cover {
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
   filter: saturate(1.12) contrast(1.06) brightness(0.88);
   transform: scale(1.04);
-  animation: crt-on 0.42s var(--ease-out) both;
+  /* The channel change is choreographed in `ui/TvShowreel.tsx` (collapse →
+     snow → re-lock); no CSS animation may touch transform/filter here, or the
+     two would fight over the same properties. */
 }
 
-@keyframes crt-on {
-  0% { transform: scale(1.04, 0.008); filter: brightness(2.4) saturate(0); opacity: 0.6; }
-  45% { transform: scale(1.04, 0.12); filter: brightness(1.6) saturate(0.5); opacity: 1; }
-  100% { transform: scale(1.04, 1); filter: saturate(1.12) contrast(1.06) brightness(0.88); }
+/* Analogue snow between channels. The tile is generated once at runtime and
+   repeated; GSAP only nudges it a few steps, so the layer costs one composited
+   background instead of a per-frame canvas blit. */
+.tv-static {
+  position: absolute;
+  inset: -4%;
+  /* Above the glass (z 4) on purpose: while the grain is up, nothing else on
+     the tube may show through, or the swapped frame reads as a decal on the
+     noise instead of a channel change. */
+  z-index: 5;
+  opacity: 0;
+  pointer-events: none;
+  background-repeat: repeat;
+  background-size: 160px 160px;
+  image-rendering: pixelated;
+  /* Opaque on purpose: between channels there is nothing else on the tube, so
+     the grain has to cover the outgoing frame completely — a `screen` blend
+     would let the old picture glow through and give the swap away. */
+  will-change: opacity, background-position;
+}
+
+/* The sync line left behind when vertical hold goes: a hot horizontal band
+   that sits at the centre of the glass for a couple of frames. Positioned with
+   `top` (never a transform) so GSAP can own `transform` for its scale-up. */
+.tv-sync-line {
+  position: absolute;
+  left: -3%;
+  right: -3%;
+  top: calc(50% - 1.4%);
+  height: 2.8%;
+  z-index: 6;
+  opacity: 0;
+  pointer-events: none;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0) 0%, #fff 42%, #fff 58%, rgba(255, 255, 255, 0) 100%);
+  box-shadow: 0 0 3vmin rgba(255, 255, 255, 0.55);
+  mix-blend-mode: screen;
+  will-change: opacity, transform;
+}
+
+/* The white bar that rolls through the frame as the tuner loses sync. */
+.tv-roll {
+  position: absolute;
+  left: -6%;
+  right: -6%;
+  top: 0;
+  height: 18%;
+  z-index: 6;
+  opacity: 0;
+  pointer-events: none;
+  background: linear-gradient(180deg, transparent 0%, rgba(255, 255, 255, 0.5) 42%, rgba(255, 255, 255, 0.7) 55%, transparent 100%);
+  mix-blend-mode: screen;
+  will-change: opacity, transform;
 }
 
 /* Scanlines live on their own layer so the exit can strip the filter away
@@ -1051,14 +1103,29 @@ body {
   z-index: 2;
   max-width: 74vw;
   margin-top: auto;
-  margin-bottom: 2.6vw;
+  /* Nudged in from the gutter and lifted away from the marquee: the block
+     moves towards the upper right of the sheet, which is where the empty space
+     is, without breaking the symmetric gutter by more than a hair. */
+  margin-left: 0.8vw;
+  margin-bottom: 4.2vw;
 }
 
 .contact-line {
   overflow: hidden;
   /* Display caps are set tight: negative tracking and a compressed leading are
      what make three stacked lines read as one block instead of three rows. */
-  font-size: clamp(36px, 7.2vw, 148px);
+  /* Type size is bounded by the *gap to the booth*, not by the viewport alone.
+     The booth column is 43.65svh wide and its drawn silhouette starts ~11%
+     inside that box, so its visible left edge sits at `95.6vw − 38.9svh`; the
+     headline starts at `5vw + 0.8vw`. Whatever is left, minus a 1.1vw air gap,
+     divided by the 8.3 that "MARQUEE MOON" measures per em, is the largest the
+     block can be without ever running onto the model — at any aspect ratio.
+     `8.9vw` is the preferred size; `min()` takes whichever is smaller, so wide
+     short windows get the fitting size instead of a collision. The 8.3 is only
+     the em width of *this* face — a wider fallback or a wider webfont changes
+     it — so `Contact` measures the rendered line on mount and overrides the
+     whole clamp with `--contact-fs` when the copy would actually collide. */
+  font-size: var(--contact-fs, clamp(38px, min(8.9vw, calc((88.7vw - 38.9svh) / 8.3)), 176px));
   font-weight: 500;
   line-height: 0.86;
   letter-spacing: -0.022em;
@@ -1165,15 +1232,18 @@ body {
      above the marquee too: the plinth stands on the floor rule, so the strip
      has to pass behind it instead of cropping it. */
   z-index: 4;
-  /* Stretched between the top edge and the sheet's floor rule rather than a
-     fixed height, so the booth takes whatever vertical room the sheet actually
-     has: the crown touches the top margin, the plinth stands on the rule, and
-     the width follows from the 9:16 silhouette aspect. This is the largest the
-     booth can be before the marquee starts eating the base. It also carries no
-     transform of its own — GSAP owns `transform` for the entrance. */
+  /* Stretched between the top edge and a floor line *above* the marquee, so
+     the plinth rests on the rule and the strip passes underneath it instead of
+     through it — the base never touches the running text. Height (and with the
+     9:16 silhouette aspect the width too) is whatever that span gives: 77.6svh,
+     a tenth smaller than the version that stood on the marquee. The column is
+     nudged 0.6vw further right than the text gutter: the sketch wants the
+     copy to move towards the booth, and the extra hair of air is what lets the
+     type grow without running onto the model. It also carries no transform of
+     its own — GSAP owns `transform` for the entrance. */
   top: 0;
-  bottom: 13.7svh;
-  right: 7.5vw;
+  bottom: 22.4svh;
+  right: 4.4vw;
   height: auto;
   aspect-ratio: 9 / 16;
   will-change: transform;
@@ -1638,8 +1708,11 @@ body {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .tv-cover {
-    animation: none;
+  /* The channel change is skipped entirely in JS; the snow layers never show. */
+  .tv-static,
+  .tv-roll,
+  .tv-sync-line {
+    display: none;
   }
   .contact-booth-float {
     animation: none;

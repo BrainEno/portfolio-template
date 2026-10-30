@@ -1,11 +1,22 @@
 import type { MetadataRoute } from "next";
-import { loadContent } from "@/portfolio/server/api";
+import { requireFreshRender } from "@/portfolio/content/mode";
+import { getSiteContent } from "@/portfolio/content/source";
 import { pickText } from "@/portfolio/seo/site";
 
-export const dynamic = "force-dynamic";
+/**
+ * A metadata route is a route handler, and `output: "export"` only accepts a
+ * handler that can be prerendered. Declaring the (empty) static params set is
+ * how this file tells the exporter "yes, this one is buildable" without
+ * pinning `dynamic` to a literal that the server build cannot use; during the
+ * server build `requireFreshRender()` above keeps it per-request.
+ */
+export function generateStaticParams() {
+  return [];
+}
 
 export default async function manifest(): Promise<MetadataRoute.Manifest> {
-  const content = await loadContent();
+  await requireFreshRender();
+  const content = await getSiteContent();
   const lang = content.identity.defaultLanguage;
   const name = pickText(content.identity.siteName, lang) || content.identity.name;
   return {

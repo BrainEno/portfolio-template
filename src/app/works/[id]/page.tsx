@@ -1,16 +1,26 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { loadContent } from "@/portfolio/server/api";
+import { IS_STATIC_BUILD, requireFreshRender } from "@/portfolio/content/mode";
+import { getSiteContent } from "@/portfolio/content/source";
 import { absoluteUrl, pickText, siteUrl } from "@/portfolio/seo/site";
 import "@/portfolio/styles/work-detail.css";
 
-export const dynamic = "force-dynamic";
+/**
+ * Every project page is prerendered in a static build, so the export needs the
+ * complete list up front; the server build keeps answering per request, so the
+ * list is not consulted there.
+ */
+export async function generateStaticParams() {
+  if (!IS_STATIC_BUILD) return [];
+  const content = await getSiteContent();
+  return content.works.items.map((work) => ({ id: work.id }));
+}
 
 type Params = { params: Promise<{ id: string }> };
 
 async function findWork(id: string) {
-  const content = await loadContent();
+  const content = await getSiteContent();
   const work = content.works.items.find((item) => item.id === id);
   return { content, work };
 }
@@ -33,6 +43,7 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
 
 /** Server-rendered project page: crawlable detail copy + detail images from the database. */
 export default async function WorkPage({ params }: Params) {
+  await requireFreshRender();
   const { id } = await params;
   const { content, work } = await findWork(id);
   if (!work) notFound();
