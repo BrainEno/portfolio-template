@@ -52,24 +52,28 @@ jobs:
       # `next dev --webpack` is the daily command and it exercises a webpack
       # loader path the production builds never touch — a config that builds
       # fine can still 500 in dev (see the `pageExtensions` note in
-      # next.config.ts). Boot it, require a 200 on `/`, then shut it down.
+      # next.config.ts). Boot it, require a 200, then shut it down. The URL
+      # carries the job's `NEXT_PUBLIC_BASE_PATH`, because that is also how the
+      # site is served (a bare `/` is a 404 under a base path, by design).
       - name: Dev server serves the app (webpack)
         run: |
           npm run dev -- --port 3100 > /tmp/dev.log 2>&1 &
+          base="${NEXT_PUBLIC_BASE_PATH%/}"
+          url="http://127.0.0.1:3100${base}/"
           status=000
-          for _ in $(seq 1 90); do
-            status=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3100/ || true)
+          for _ in $(seq 1 120); do
+            status=$(curl -s -o /dev/null -w '%{http_code}' "$url" || true)
             if [ "$status" = "200" ]; then break; fi
             sleep 1
           done
           pkill -f '[n]ext dev' || true
           pkill -f '[n]ext-server' || true
           if [ "$status" != "200" ]; then
-            echo "dev server returned $status for /"
+            echo "dev server returned $status for $url"
             tail -40 /tmp/dev.log
             exit 1
           fi
-          echo "dev server ok"
+          echo "dev server ok ($url)"
       - name: Build (domain root)
         env:
           NEXT_PUBLIC_BASE_PATH: ""
