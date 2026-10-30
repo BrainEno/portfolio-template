@@ -26,7 +26,7 @@ const nextConfig: NextConfig = {
   images: { unoptimized: true },
   // Restricting page extensions to `.tsx` keeps anything that is not a page
   // (handlers, helpers) out of the router.
-  pageExtensions: ["tsx"],
+  pageExtensions: ["tsx", "ts", "jsx", "js"],
 };
 
 export default nextConfig;

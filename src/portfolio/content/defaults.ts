@@ -71,10 +71,10 @@ export const defaultContent: PortfolioContent = {
     heading: { zh: "开源作品", en: "Open Source" },
     period: "2026",
     tv: {
-      src: "/images/tv-bg.webp",
+      src: "/images/tv.webp",
       width: 2560,
       height: 1707,
-      // Glass bounds measured from tv-bg.webp (2560x1707): the tube glass
+      // Glass bounds measured from tv.webp (2560x1707): the tube glass
       // runs x 1102-1428 / y 986-1246. The rect tucks ~4px under the dark
       // inner bezel on the left (x 1098) so no photo-glass sliver can peek
       // out beside the overlay during the zoom; the right edge stays under

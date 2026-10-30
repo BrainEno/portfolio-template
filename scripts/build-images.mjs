@@ -46,7 +46,7 @@ const MIN_STEP = 1.15;
  * silhouette), the `works/` stills already come from a design export, and the
  * TV artwork is referenced with explicit intrinsic dimensions.
  */
-const SKIP = new Set(["phone-booth-cutout.png", "tv-bg.webp"]);
+const SKIP = new Set(["phone-booth-cutout.png", "tv.webp"]);
 
 const force = process.argv.includes("--force");
 
