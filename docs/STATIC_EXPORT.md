@@ -73,6 +73,11 @@ NEXT_PUBLIC_SITE_URL=https://example.com npm run build:static
 两种路径各构建一次并 smoke）→ `build` → `deploy`。**首次部署只需要在仓库
 Settings → Pages → Source 选 “GitHub Actions”**，之后不用再动。
 
+⚠️ **不要用 Pages 设置页里的 “Next.js / Static HTML” 模板另加一个 workflow**。它们会往同一个
+`github-pages` 环境发布，两个 workflow 各自构建、互相覆盖：模板版不会带
+`NEXT_PUBLIC_BASE_PATH`，发出来的 HTML 里 `<img src>` 是站点根路径，项目站（`/repo/`）
+下所有图片就 404 了；而且没人知道最后一次是哪个跑赢的。仓库里**只保留一个**发布 workflow。
+
 项目站（`https://<用户名>.github.io/<仓库>/`）在子路径下，workflow 已经设好两个变量：
 
 ```bash

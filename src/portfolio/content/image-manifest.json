@@ -9,6 +9,7 @@
     "/images/accent-1.jpg": {
       "width": 900,
       "height": 1200,
+      "quality": 78,
       "variants": [
         {
           "type": "image/webp",
@@ -19,6 +20,7 @@
     "/images/accent-2.jpg": {
       "width": 900,
       "height": 1200,
+      "quality": 78,
       "variants": [
         {
           "type": "image/webp",
@@ -29,6 +31,7 @@
     "/images/figure.jpg": {
       "width": 1200,
       "height": 1600,
+      "quality": 78,
       "variants": [
         {
           "type": "image/webp",
@@ -39,6 +42,7 @@
     "/images/profilephoto.jpg": {
       "width": 1000,
       "height": 1400,
+      "quality": 78,
       "variants": [
         {
           "type": "image/webp",
@@ -49,6 +53,7 @@
     "/images/screenshot1.jpg": {
       "width": 900,
       "height": 1200,
+      "quality": 78,
       "variants": [
         {
           "type": "image/webp",
@@ -59,6 +64,7 @@
     "/images/screenshot2.jpg": {
       "width": 900,
       "height": 1200,
+      "quality": 78,
       "variants": [
         {
           "type": "image/webp",
@@ -69,6 +75,7 @@
     "/images/tree1.jpg": {
       "width": 1200,
       "height": 900,
+      "quality": 78,
       "variants": [
         {
           "type": "image/webp",
@@ -79,6 +86,7 @@
     "/images/tree2.jpg": {
       "width": 1200,
       "height": 900,
+      "quality": 78,
       "variants": [
         {
           "type": "image/webp",
@@ -89,6 +97,7 @@
     "/images/tree3.jpg": {
       "width": 1200,
       "height": 900,
+      "quality": 78,
       "variants": [
         {
           "type": "image/webp",
@@ -99,6 +108,7 @@
     "/images/tree4.jpg": {
       "width": 1200,
       "height": 900,
+      "quality": 78,
       "variants": [
         {
           "type": "image/webp",
@@ -109,6 +119,7 @@
     "/images/tree5.jpg": {
       "width": 1200,
       "height": 900,
+      "quality": 78,
       "variants": [
         {
           "type": "image/webp",
@@ -116,9 +127,21 @@
         }
       ]
     },
+    "/images/tv.webp": {
+      "width": 2560,
+      "height": 1707,
+      "quality": 76,
+      "variants": [
+        {
+          "type": "image/webp",
+          "srcSet": "/images/opt/tv-1280.ae8ab0ef.webp 1280w, /images/opt/tv-1920.ae8ab0ef.webp 1920w, /images/opt/tv-2560.ae8ab0ef.webp 2560w"
+        }
+      ]
+    },
     "/images/work1.jpg": {
       "width": 1200,
       "height": 900,
+      "quality": 78,
       "variants": [
         {
           "type": "image/webp",
@@ -129,6 +152,7 @@
     "/images/work2.jpg": {
       "width": 1200,
       "height": 900,
+      "quality": 78,
       "variants": [
         {
           "type": "image/webp",
@@ -139,6 +163,7 @@
     "/images/work3.jpg": {
       "width": 1200,
       "height": 900,
+      "quality": 78,
       "variants": [
         {
           "type": "image/webp",
@@ -149,6 +174,7 @@
     "/images/work4.jpg": {
       "width": 1200,
       "height": 900,
+      "quality": 78,
       "variants": [
         {
           "type": "image/webp",
@@ -159,6 +185,7 @@
     "/images/work5.jpg": {
       "width": 1200,
       "height": 900,
+      "quality": 78,
       "variants": [
         {
           "type": "image/webp",
@@ -169,6 +196,7 @@
     "/images/works/lyric-forge-ktv.jpg": {
       "width": 1600,
       "height": 1000,
+      "quality": 78,
       "variants": [
         {
           "type": "image/webp",
@@ -179,6 +207,7 @@
     "/images/works/no-wave.jpg": {
       "width": 1600,
       "height": 1000,
+      "quality": 78,
       "variants": [
         {
           "type": "image/webp",
@@ -189,6 +218,7 @@
     "/images/works/remix-partfolio.jpg": {
       "width": 1600,
       "height": 1000,
+      "quality": 78,
       "variants": [
         {
           "type": "image/webp",
@@ -199,6 +229,7 @@
     "/images/works/scribeforge.jpg": {
       "width": 1600,
       "height": 1000,
+      "quality": 78,
       "variants": [
         {
           "type": "image/webp",
@@ -209,6 +240,7 @@
     "/images/works/win7-book-management.jpg": {
       "width": 1600,
       "height": 1000,
+      "quality": 78,
       "variants": [
         {
           "type": "image/webp",

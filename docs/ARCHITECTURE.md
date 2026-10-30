@@ -80,11 +80,21 @@ Hero、肖像（含重影层）、画廊、两张点缀图、电视封面、作�
 `scripts/build-images.mjs`（`npm run images`，`build:static` / `dev` 之前自动执行）会把
 `public/images/**` 压成 480 / 800 / 1200 三档 WebP，写进 `public/images/opt/`，同时生成
 `src/portfolio/content/image-manifest.json`；`ui/Img.tsx` 按清单给每个 `<img>` 挂
-`srcSet` + `sizes`（`sizes` 是各版面实测的 vw 值，见组件调用处）。三条不变量：
+`srcSet` + `sizes`（`sizes` 是各版面实测的 vw 值，见组件调用处）。两条例外：`.webp` 源
+（也就是被换成照片的电视图）同样进管线；`tv.webp` 用 `OVERRIDES` 里单独的一档
+（1280/1920/2560，q76）——它的 `sizes` 不是视口宽度，而是 `max(160vw, 230vh)`。三条不变量：
 
 1. `src` 永远是真实文件——清单没跟上、浏览器不支持 `srcSet`、图被删掉，都只是"没有优化"，不会 404/空白；
 2. 不包 `<picture>`——`.story-photo-mask img`、`.tv-frame` 这类选择器，以及 flex 几何，都要求 `<img>` 自己就是那个盒子；
 3. 清单是提交进仓库的生成物，脚本按 mtime 增量跳过，几十毫秒就跑完。
+
+**电视图的分层**：`tv.webp` 只负责**机柜**，屏幕里的画面是盖在它**上面**的一层
+DOM（`.tv-screen` 等，`z-index` 高于 `.tv-frame`），位置来自 `works.tv.screen` 的百分比矩形。
+早期版本反过来：机柜图压在最上层并带 `mix-blend-mode: darken`，靠插画里那块**近白**玻璃
+让下面的画面透出来。照片的玻璃是暗的，`darken` 会把画面亮度按像素压到照片的亮度（实测灰底
+255 的画面只能到 95/255，扫描线基本看不见），所以换照片后必须把顺序反过来。
+代价是矩形要**量准**：它是可见边界，偏一点就会露出照片自带的屏幕或压到边框。
+`npm run tv-glass` 负责把矩形画出来核对。
 
 ## 6. 转场与 Contact 区动效
 
@@ -170,7 +180,11 @@ Hero、肖像（含重影层）、画廊、两张点缀图、电视封面、作�
 ## 7. 已知限制 / 后续
 
 - 内容改动没有图形界面：`published.json` 是 JSON，字段含义见 `docs/QUICKSTART.md` 与 `content/types.ts`。
-- 电视外框为矢量原创插画，可在 Television 页签校准玻璃位置后替换为自己的照片；电话亭为上传的 glTF 模型。
+- 电视机默认是矢量原创插画（`tv-placeholder.webp` 的源），可以直接用**你自己的照片**替换
+  `public/images/tv.webp`；但画面是盖在照片**之上**的，所以照片里玻璃的位置必须写进
+  `works.tv.screen`（`tv.webp` 上的百分比矩形）。`npm run tv-glass` 会把这个矩形画出来，
+  肉眼对齐后把像素换算成百分比写回。照片比例换得狠时，`160vw / 230vh` 的锚定尺寸也要复核。
+  电话亭为上传的 glTF 模型。
 - 仓库同时保留原始 `telephone.gltf`（38 MB，在 `assets/models/`）与优化后的 `.glb`（2.15 MB，在 `public/gltfs/`），
   只有 `.glb` 参与运行时加载。源文件**必须**留在 `public/` 之外：`public/` 会被原样拷进 `out/`，
   一个运行时从不下载的 38 MB 文件会把每次部署从 6 MB 变成 43 MB。

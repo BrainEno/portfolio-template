@@ -167,11 +167,16 @@ export function Works({ lang, content, phone, activeIndex, onPreview }: WorksPro
               <div className="tv-glass" aria-hidden="true" />
             </div>
             {/* Below the fold: no `<link rel=preload>` for artwork nobody has
-                scrolled to yet. */}
+                scrolled to yet.
+                `sizes` mirrors `.tv-anchor`'s `max(160vw, 230vh)`: the cabinet
+                is laid out far wider than the viewport (the glass, not the
+                box, is what fits the screen), so the default ladder would be
+                blurry. Portrait-ish viewports are height-driven. */}
             <Img
               className="tv-frame"
               src={src}
               alt=""
+              sizes="(max-aspect-ratio: 4/3) 230vh, 160vw"
               hidden
               loading="lazy"
               draggable={false}

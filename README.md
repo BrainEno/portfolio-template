@@ -87,7 +87,8 @@ npm run build:static
 | `npm run images` | 生成响应式 WebP 与图片清单（`build:static` / `dev` 前自动执行） |
 | `npm run smoke` | 用普通静态服务器托管 `out/` 并逐页爬一遍（CI 也跑这个） |
 | `npm run lint` · `typecheck` | ESLint · TypeScript |
-| `npm run art` | 重新生成电视机矢量插画与电话亭抠图兜底 |
+| `npm run art` | 重新生成电话亭抠图兜底与电视机**占位**插画（不会覆盖你自己的 `tv.webp`） |
+| `npm run tv-glass` | 把 `works.tv.screen` 的矩形画到电视图上，核对玻璃位置（输出 `/tmp/tv-glass-check.png`） |
 | `python3 scripts/optimize-booth-model.py` | 由 `assets/models/telephone.gltf` 重新生成 `public/gltfs/telephone.glb`（需 ImageMagick） |
 
 ## 目录结构
