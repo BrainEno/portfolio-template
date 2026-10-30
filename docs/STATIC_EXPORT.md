@@ -7,13 +7,19 @@
 
 ```bash
 npm ci
-NEXT_PUBLIC_SITE_URL=https://example.com npm run build:static   # ≈20 秒，产物在 out/
+NEXT_PUBLIC_SITE_URL=https://example.com npm run build:static   # ≈25 秒，产物在 out/（≈6 MB）
 npm run preview                                                # http://localhost:3300
+npm run smoke                                                  # 逐页爬一遍 out/，≈2 秒
 ```
 
 `npm run preview` 是一个普通静态服务器（`scripts/preview.mjs`），行为和线上托管一致：
-目录 URL 解析到 `index.html`，找不到的路径返回 `404.html` + 404 状态码，缓存头和 `netlify.toml` 保持一致。
+目录 URL 解析到 `index.html`，找不到的路径返回 `404.html` + 404 状态码，缓存头和 `netlify.toml` 保持一致，
+文本资源按 `Accept-Encoding` 现场 Brotli/gzip（与 Netlify 同口径，不然本地量出来的传输体积没有意义）。
 如果某个页面在这里打不开，它在线上也打不开。
+
+`npm run smoke` 在同一个服务器上做无人值守的回归：按 `sitemap.xml` 遍历每个页面（200 + `text/html`）、
+断言 `/admin/` 之类的路径是 **404**、`robots.txt` 只 `Disallow: /offline`、首页引用的每个
+图片 URL（含所有 `srcSet` 候选）都真实存在。CI 的 `verify` job 跑的就是它，没过不会部署。
 
 `out/` 里是：
 
@@ -23,7 +29,7 @@ out/
 ├── works/<slug>/index.html        # 每个作品一页
 ├── sitemap.xml  robots.txt  manifest.webmanifest  sw.js
 ├── _next/…                        # JS/CSS/字体（带内容哈希）
-├── images/  gltfs/  icons/        # 静态资源
+├── images/  gltfs/  icons/        # 静态资源（images/opt/ 是构建期生成的响应式 WebP）
 └── 404.html
 ```
 

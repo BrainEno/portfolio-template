@@ -4,6 +4,9 @@
  *
  *   npm run build:static
  *
+ * Two steps: the responsive image derivatives are regenerated first (incremental,
+ * a no-op unless an image changed), then the export is produced.
+ *
  * Next is configured as `output: "export"` (see next.config.ts), so this is
  * `next build` with the deployment variables filled in: the origin is baked into
  * canonical URLs / sitemap.xml / robots.txt, and the optional base path makes
@@ -32,10 +35,18 @@ const env = {
   ...(basePath ? { NEXT_PUBLIC_BASE_PATH: basePath } : {}),
 };
 
-const child = spawn(process.platform === "win32" ? "next.cmd" : "next", ["build"], {
-  env,
-  stdio: "inherit",
-  shell: process.platform === "win32",
-});
+/** `npm run build` gets this from the `prebuild` hook; this script bypasses npm. */
+function run(command, args) {
+  return new Promise((resolve) => {
+    const child = spawn(command, args, {
+      env,
+      stdio: "inherit",
+      shell: process.platform === "win32",
+    });
+    child.on("exit", (code) => resolve(code ?? 1));
+  });
+}
 
-child.on("exit", (code) => process.exit(code ?? 1));
+const images = await run(process.execPath, ["scripts/build-images.mjs"]);
+if (images !== 0) process.exit(images);
+process.exit(await run(process.platform === "win32" ? "next.cmd" : "next", ["build"]));

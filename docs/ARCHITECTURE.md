@@ -68,6 +68,16 @@ Hero、肖像（含重影层）、画廊、两张点缀图、电视封面、作�
 因此任意比例/像素的新图都只会被裁切，不会改变容器尺寸、不会触发回流，GSAP 时间线的测量值不变。
 电话亭改为 WebGL 模型（见第 6 节），模型未就绪时用透明抠图 `/images/phone-booth-cutout.png` 兜底，`object-fit: contain`。
 
+**响应式尺寸**：静态导出没有图片优化服务，`public/` 里是什么、访客就下载什么。所以
+`scripts/build-images.mjs`（`npm run images`，`build:static` / `dev` 之前自动执行）会把
+`public/images/**` 压成 480 / 800 / 1200 三档 WebP，写进 `public/images/opt/`，同时生成
+`src/portfolio/content/image-manifest.json`；`ui/Img.tsx` 按清单给每个 `<img>` 挂
+`srcSet` + `sizes`（`sizes` 是各版面实测的 vw 值，见组件调用处）。三条不变量：
+
+1. `src` 永远是真实文件——清单没跟上、浏览器不支持 `srcSet`、图被删掉，都只是"没有优化"，不会 404/空白；
+2. 不包 `<picture>`——`.story-photo-mask img`、`.tv-frame` 这类选择器，以及 flex 几何，都要求 `<img>` 自己就是那个盒子；
+3. 清单是提交进仓库的生成物，脚本按 mtime 增量跳过，几十毫秒就跑完。
+
 ## 6. 转场与 Contact 区动效
 
 **电视退场 → 白场 → Contact**（`scroll/choreography.ts#television` 的 `exitTl` + `contact()`，全部绑定滚动 scrub）。
@@ -126,7 +136,7 @@ Hero、肖像（含重影层）、画廊、两张点缀图、电视封面、作�
 - 落位见上文第 7 条：画布顶到版面顶部、底座踩在地板线上，是这张纸能给到的最大尺寸。
 
 **模型与渲染**：
-- `public/gltfs/telephone.glb` 由 `scripts/optimize-booth-model.py` 从原始 `telephone.gltf`（38 MB，buffer base64 内嵌）生成：
+- `public/gltfs/telephone.glb` 由 `scripts/optimize-booth-model.py` 从原始 `assets/models/telephone.gltf`（38 MB，buffer base64 内嵌）生成：
   几何原样保留，9 张 2048² PNG 重编码为 baseColor 1024² / normal 1024² / metallicRoughness 512² JPEG，产物约 2.15 MB。
 - `ui/PhoneBoothModel.tsx` 在 contact 进入前 1.5 屏时（IntersectionObserver + 动态 `import()`）才加载 `three` 与模型；
   离开视口或标签页隐藏时暂停渲染；加载失败 / 无 WebGL 时回落到抠图。
@@ -153,6 +163,8 @@ Hero、肖像（含重影层）、画廊、两张点缀图、电视封面、作�
 
 - 内容改动没有图形界面：`published.json` 是 JSON，字段含义见 `docs/QUICKSTART.md` 与 `content/types.ts`。
 - 电视外框为矢量原创插画，可在 Television 页签校准玻璃位置后替换为自己的照片；电话亭为上传的 glTF 模型。
-- 仓库同时保留原始 `telephone.gltf`（38 MB）与优化后的 `.glb`（2.15 MB），只有 `.glb` 参与运行时加载；
-  若不需要再修改模型，可移除原始 `.gltf` 以减小仓库体积。
+- 仓库同时保留原始 `telephone.gltf`（38 MB，在 `assets/models/`）与优化后的 `.glb`（2.15 MB，在 `public/gltfs/`），
+  只有 `.glb` 参与运行时加载。源文件**必须**留在 `public/` 之外：`public/` 会被原样拷进 `out/`，
+  一个运行时从不下载的 38 MB 文件会把每次部署从 6 MB 变成 43 MB。
+- 图片清单（`image-manifest.json`）是生成物：换图后没跑 `npm run images` 时，新图仍能显示，只是没有 `srcSet`。
 - Aeonik 为商业字体，未随仓库分发；放入本机或自行添加 `@font-face` 源即可，缺省回退 Inter。

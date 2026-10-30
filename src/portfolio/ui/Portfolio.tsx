@@ -192,7 +192,23 @@ export default function Portfolio({ content }: { content: PortfolioContent }) {
     const count = scope.querySelector<HTMLElement>(".preloader-count");
     const heroImage = scope.querySelector<HTMLImageElement>(".hero-photo");
     const entrance = createHeroEntrance();
-    const quick = prefersReducedMotion() || window.sessionStorage.getItem(SEEN_KEY) === "1";
+
+    // Reduced motion means *no* motion, not the same motion, quicker. The two
+    // pieces that cannot be made "short enough" are the full-screen loading
+    // overlay and the 1.5 s hero reveal, so both are skipped: the page is just
+    // there, already in its final pose. Scroll choreography, the booth and the
+    // television each check the same media query on their own.
+    if (prefersReducedMotion()) {
+      if (preloader) preloader.style.display = "none";
+      entrance.progress(1);
+      smoother.paused(false);
+      return () => {
+        entrance.revert();
+        ScrollSmoother.get()?.kill();
+      };
+    }
+
+    const quick = window.sessionStorage.getItem(SEEN_KEY) === "1";
     const counter = { value: 0 };
     const renderCount = () => {
       if (count) count.textContent = String(Math.round(counter.value)).padStart(3, "0");

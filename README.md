@@ -50,6 +50,10 @@ CI 重新导出，站点更新。没有后台、没有数据库、没有需要�
 
 > 图片：字段里填路径（`/images/xxx.jpg`）或外链（`https://…`）都可以。
 > 图片都放在固定尺寸的画框里裁切，所以任何比例的图换了都不会破坏版式。
+>
+> 本地图片会被自动做响应式：`npm run images`（构建前自动执行）把 `public/images/` 里的
+> 图压成 480 / 800 / 1200 三档 WebP，页面上按实际显示宽度取用。**换图之后跑一次即可**，
+> 忘了跑也不会出错——只是那张图按原尺寸加载。
 
 ## 部署
 
@@ -75,9 +79,11 @@ NEXT_PUBLIC_SITE_URL=https://your-site.netlify.app npm run build:static
 | `npm run dev` | 开发服务器 |
 | `npm run build:static` | 静态导出 → `out/`（`build` 是同一个东西） |
 | `npm run preview` | 用一个普通静态服务器托管 `out/`，和线上行为一致 |
+| `npm run images` | 生成响应式 WebP 与图片清单（`build:static` / `dev` 前自动执行） |
+| `npm run smoke` | 用普通静态服务器托管 `out/` 并逐页爬一遍（CI 也跑这个） |
 | `npm run lint` · `typecheck` | ESLint · TypeScript |
 | `npm run art` | 重新生成电视机矢量插画与电话亭抠图兜底 |
-| `python3 scripts/optimize-booth-model.py` | 由 `public/gltfs/telephone.gltf` 重新生成 `telephone.glb`（需 ImageMagick） |
+| `python3 scripts/optimize-booth-model.py` | 由 `assets/models/telephone.gltf` 重新生成 `public/gltfs/telephone.glb`（需 ImageMagick） |
 
 ## 目录结构
 
@@ -86,12 +92,13 @@ src/app/                 路由层（薄）：/ · /works/[id] · /offline · ro
 src/portfolio/
   content/               types · defaults(模板内容) · published.json(你的内容) · normalize · source(唯一入口)
   scroll/choreography.ts 全部 GSAP 时间线
-  ui/                    Portfolio 壳 · 四幕 sections · PhoneBoothModel · TvShowreel · PwaRegister
+  ui/                    Portfolio 壳 · 四幕 sections · Img(响应式) · PhoneBoothModel · TvShowreel · PwaRegister
   three/booth.ts         WebGL 电话亭（环境光、自转、拖拽、取景）
   seo/site.ts            站点 URL / JSON-LD / 标题规则
   styles/                portfolio.css · work-detail.css
-public/                  images · gltfs · icons · sw.js(离线缓存)
-scripts/                 build-static.mjs · preview.mjs · art/
+public/                  images(+ opt/ 生成的 WebP) · gltfs · icons · sw.js(离线缓存)
+assets/models/           建模源文件：telephone.gltf（38 MB，不进导出目录）
+scripts/                 build-static.mjs · build-images.mjs · smoke.mjs · preview.mjs · art/
 netlify.toml · .github/workflows/static.yml
 ```
 
