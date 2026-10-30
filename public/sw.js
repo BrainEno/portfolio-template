@@ -1,16 +1,23 @@
 /* Offline support for the portfolio (no build step, no dependencies).
  *
- *  - /_next/static, /images, /fonts, /icons, /gltfs : cache-first (content-hashed or rarely changing)
- *  - page navigations                        : network-first, fall back to the cached copy, then /offline
- *  - manifest.webmanifest                    : network-first, fall back to the cached copy
- *  - a navigation that goes offline           : the cached copy, then /offline
+ *  - _next/static, images, fonts, icons, gltfs : cache-first (content-hashed or rarely changing)
+ *  - page navigations                          : network-first, fall back to the cached copy, then /offline
+ *  - manifest.webmanifest                      : network-first, fall back to the cached copy
+ *  - a navigation that goes offline            : the cached copy, then /offline
+ *
+ * No absolute paths here: a GitHub Pages project site lives under `/<repo>/`,
+ * so the worker derives its own prefix from the scope it was registered with
+ * (see PwaRegister). Every URL below is built from `at()`.
  *
  * Bump VERSION to drop all caches on the next visit.
  */
-const VERSION = "v3";
+const VERSION = "v4";
 const STATIC = `pf-static-${VERSION}`;
 const PAGES = `pf-pages-${VERSION}`;
-const CORE = ["/", "/offline", "/manifest.webmanifest", "/icons/icon-192.png"];
+/** `""` at a domain root, `"/portfolio-template"` under a Pages project site. */
+const BASE = new URL(self.registration.scope).pathname.replace(/\/$/, "");
+const at = (pathname) => `${BASE}${pathname}`;
+const CORE = [at("/"), at("/offline"), at("/manifest.webmanifest"), at("/icons/icon-192.png")];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
@@ -27,10 +34,8 @@ self.addEventListener("activate", (event) => {
   );
 });
 
-const isStaticAsset = (url) =>
-  url.pathname.startsWith("/_next/static/") ||
-  url.pathname.startsWith("/_next/image") ||
-  /^\/(images|fonts|icons|gltfs)\//.test(url.pathname);
+const STATIC_PREFIXES = ["/_next/static/", "/_next/image", "/images/", "/fonts/", "/icons/", "/gltfs/"];
+const isStaticAsset = (url) => STATIC_PREFIXES.some((prefix) => url.pathname.startsWith(at(prefix)));
 
 async function cacheFirst(request, cacheName) {
   const cache = await caches.open(cacheName);
@@ -70,10 +75,10 @@ self.addEventListener("fetch", (event) => {
     return;
   }
   if (request.mode === "navigate") {
-    event.respondWith(networkFirst(request, PAGES, "/offline"));
+    event.respondWith(networkFirst(request, PAGES, at("/offline")));
     return;
   }
-  if (url.pathname === "/manifest.webmanifest") {
+  if (url.pathname === at("/manifest.webmanifest")) {
     event.respondWith(networkFirst(request, PAGES));
   }
 });

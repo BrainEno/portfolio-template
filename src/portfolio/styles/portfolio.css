@@ -716,7 +716,14 @@ body {
 }
 
 .tv-screen {
-  z-index: 1;
+  /* Above `.tv-frame` on purpose. The artwork used to sit on top with a
+     `darken` blend so its (near-white) vector glass let the picture through —
+     a photo's glass is much darker, and `darken` would cap every still at its
+     ~96/255 luminance, i.e. a murky tube. Layering the screen above the
+     artwork means the picture renders at its own brightness and the photo only
+     supplies the cabinet; the glass rectangle (`.works.tv.screen`) is the
+     visible boundary, which is why it is measured rather than guessed. */
+  z-index: 2;
   background: #020202;
   transform: translateZ(0);
   /* `clip` (unlike `hidden`) does not force a scroll container, so the
@@ -879,11 +886,13 @@ body {
 .tv-frame {
   position: absolute;
   inset: 0;
-  z-index: 2;
+  /* Below the screen (see `.tv-screen`): no blend mode, because there is
+     nothing left for it to do — the artwork's job is the cabinet, the tube is
+     the picture's job. */
+  z-index: 1;
   width: 100%;
   height: 100%;
   object-fit: cover;
-  mix-blend-mode: darken;
   pointer-events: none;
 }
 

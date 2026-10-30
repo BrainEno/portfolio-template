@@ -1,9 +1,9 @@
 import type { NextConfig } from "next";
 
 /**
- * This site ships as plain files: `npm run build:static` writes `out/`, and any
- * static host (GitHub Pages, Netlify, an OSS bucket, nginx) serves it. There is
- * no server build, no API routes and no database.
+ * This site ships as plain files: `npm run build:static` writes `out/`, and
+ * GitHub Pages (or any static host) serves it. There is no server build, no API
+ * routes and no database.
  *
  * `NEXT_PUBLIC_BASE_PATH` prefixes the router and every asset, for hosts that
  * serve a project site from a sub-path (`/repo/`). The public origin
@@ -24,9 +24,18 @@ const nextConfig: NextConfig = {
   // There is no image optimisation server in an export, so `next/image` falls
   // back to plain `<img>` semantics instead of pointing at `/_next/image`.
   images: { unoptimized: true },
-  // Restricting page extensions to `.tsx` keeps anything that is not a page
-  // (handlers, helpers) out of the router.
-  pageExtensions: ["tsx", "ts", "jsx", "js"],
+  // Keep anything that is not a page (components, data, helpers) out of the
+  // router: only `.tsx` pages and `.ts` route handlers/middleware become routes.
+  //
+  // This list must never hold exactly ONE entry. `getAppEntry` passes the loader
+  // options through `querystring.stringify`, and a one-element array can only be
+  // encoded once (`pageExtensions=tsx`), so webpack hands `next-app-loader` a
+  // *string*; the loader's string branch forgets the leading dot and looks for
+  // `pagetsx` → `Can't resolve private-next-app-dir/page`, i.e. HTTP 500 on
+  // every page of `next dev --webpack` (Next 16.2.6). Two entries stay an array
+  // (`pageExtensions=tsx&pageExtensions=ts`). `verify` boots the dev server so
+  // this cannot come back unnoticed.
+  pageExtensions: ["tsx", "ts"],
 };
 
 export default nextConfig;

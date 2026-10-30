@@ -15,6 +15,7 @@
 | `Dockerfile`、`docker-compose.yml`、`deploy/`、`scripts/{setup,deploy,vps-install,doctor}.sh` | 不再需要跑一个进程 |
 | `export/react-router/`（第二份工程）、`/adam` 只读路由、`admin/Login.tsx` | 重复入口；静态站没有「登录」这回事 |
 | `docs/{DEPLOY,PLATFORM_DEPLOY,NETLIFY_DEPLOY,SETUP}.md` | 并入 `STATIC_EXPORT.md` / `QUICKSTART.md` |
+| `netlify.toml` | 只部署 GitHub Pages，配置由 `.github/workflows/static.yml` 承担 |
 | `/admin` 路由、`portfolio/admin/*`、`portfolio/client/*`、`admin.css`、`content:export` 脚本 | 静态站没有可写的地方，浏览器内的编辑器只是模拟器（见第 2 节） |
 
 保留并强化的部分：`src/portfolio` 作为与路由解耦的领域模块、`content/` 作为唯一内容契约、
@@ -53,12 +54,19 @@
 
 | 请求 | 策略 |
 |---|---|
-| `/_next/static`、`/images`、`/fonts`、`/icons`、`/gltfs` | cache-first |
-| 页面导航 | network-first → 缓存副本 → `/offline` |
+| `_next/static`、`images`、`fonts`、`icons`、`gltfs` | cache-first |
+| 页面导航 | network-first → 缓存副本 → `offline` |
 | manifest | network-first，离线读缓存 |
 | 非 GET | 不缓存 |
 
-`PwaRegister` 仅在生产构建注册；开发模式反而会注销旧 SW。manifest 提供 192/512/maskable 图标与快捷方式，可安装为桌面应用。
+**没有一处写死绝对路径**：GitHub Pages 项目站在 `/repo/` 下，worker 用 `self.registration.scope`
+反推出自己的前缀（`BASE`），CORE 列表、静态资源前缀、离线兜底页全部由 `at()` 拼出来。
+`PwaRegister` 同时把脚本地址和 scope 都带上 `BASE_PATH`——注册在源站根目录的 worker 会 404，
+而且万一存在会接管整个 `*.github.io` 域（包括别人的项目）。实测：scope 是
+`/repo/`、缓存键全部带前缀、断网刷新仍能从缓存打开首页。
+
+`PwaRegister` 仅在生产构建注册；开发模式反而会注销旧 SW。manifest 提供 192/512/maskable 图标
+与快捷方式，可安装为桌面应用（`id`/`start_url`/`scope`/icons 都带部署前缀，否则装上去会打开站根）。
 更新缓存：修改 `sw.js` 的 `VERSION`。
 
 ## 5. 图片「画框」约定（换图不用管尺寸）
@@ -72,11 +80,21 @@ Hero、肖像（含重影层）、画廊、两张点缀图、电视封面、作�
 `scripts/build-images.mjs`（`npm run images`，`build:static` / `dev` 之前自动执行）会把
 `public/images/**` 压成 480 / 800 / 1200 三档 WebP，写进 `public/images/opt/`，同时生成
 `src/portfolio/content/image-manifest.json`；`ui/Img.tsx` 按清单给每个 `<img>` 挂
-`srcSet` + `sizes`（`sizes` 是各版面实测的 vw 值，见组件调用处）。三条不变量：
+`srcSet` + `sizes`（`sizes` 是各版面实测的 vw 值，见组件调用处）。两条例外：`.webp` 源
+（也就是被换成照片的电视图）同样进管线；`tv.webp` 用 `OVERRIDES` 里单独的一档
+（1280/1920/2560，q76）——它的 `sizes` 不是视口宽度，而是 `max(160vw, 230vh)`。三条不变量：
 
 1. `src` 永远是真实文件——清单没跟上、浏览器不支持 `srcSet`、图被删掉，都只是"没有优化"，不会 404/空白；
 2. 不包 `<picture>`——`.story-photo-mask img`、`.tv-frame` 这类选择器，以及 flex 几何，都要求 `<img>` 自己就是那个盒子；
 3. 清单是提交进仓库的生成物，脚本按 mtime 增量跳过，几十毫秒就跑完。
+
+**电视图的分层**：`tv.webp` 只负责**机柜**，屏幕里的画面是盖在它**上面**的一层
+DOM（`.tv-screen` 等，`z-index` 高于 `.tv-frame`），位置来自 `works.tv.screen` 的百分比矩形。
+早期版本反过来：机柜图压在最上层并带 `mix-blend-mode: darken`，靠插画里那块**近白**玻璃
+让下面的画面透出来。照片的玻璃是暗的，`darken` 会把画面亮度按像素压到照片的亮度（实测灰底
+255 的画面只能到 95/255，扫描线基本看不见），所以换照片后必须把顺序反过来。
+代价是矩形要**量准**：它是可见边界，偏一点就会露出照片自带的屏幕或压到边框。
+`npm run tv-glass` 负责把矩形画出来核对。
 
 ## 6. 转场与 Contact 区动效
 
@@ -162,7 +180,11 @@ Hero、肖像（含重影层）、画廊、两张点缀图、电视封面、作�
 ## 7. 已知限制 / 后续
 
 - 内容改动没有图形界面：`published.json` 是 JSON，字段含义见 `docs/QUICKSTART.md` 与 `content/types.ts`。
-- 电视外框为矢量原创插画，可在 Television 页签校准玻璃位置后替换为自己的照片；电话亭为上传的 glTF 模型。
+- 电视机默认是矢量原创插画（`tv-placeholder.webp` 的源），可以直接用**你自己的照片**替换
+  `public/images/tv.webp`；但画面是盖在照片**之上**的，所以照片里玻璃的位置必须写进
+  `works.tv.screen`（`tv.webp` 上的百分比矩形）。`npm run tv-glass` 会把这个矩形画出来，
+  肉眼对齐后把像素换算成百分比写回。照片比例换得狠时，`160vw / 230vh` 的锚定尺寸也要复核。
+  电话亭为上传的 glTF 模型。
 - 仓库同时保留原始 `telephone.gltf`（38 MB，在 `assets/models/`）与优化后的 `.glb`（2.15 MB，在 `public/gltfs/`），
   只有 `.glb` 参与运行时加载。源文件**必须**留在 `public/` 之外：`public/` 会被原样拷进 `out/`，
   一个运行时从不下载的 38 MB 文件会把每次部署从 6 MB 变成 43 MB。

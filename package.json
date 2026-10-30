@@ -9,6 +9,7 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "art": "node scripts/art/generate-art.mjs",
+    "tv-glass": "node scripts/tv-glass.mjs",
     "preview": "node scripts/preview.mjs",
     "images": "node scripts/build-images.mjs",
     "predev": "npm run images",

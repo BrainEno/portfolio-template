@@ -20,10 +20,10 @@
  * `ui/Img.tsx`, so it has to be committed too — the components must be able to
  * resolve `srcSet`s without running this script.
  *
- * File names carry a hash of the source (`figure-800.1f2a3b4c.webp`) because
- * every host serves `/images/*` with `immutable` for a year (see
- * `netlify.toml`): regenerating `figure-800.webp` in place would leave returning
- * visitors looking at the previous photo until the header expired.
+ * File names carry a hash of the source (`figure-800.1f2a3b4c.webp`): hosts and
+ * service workers cache `/images/*` aggressively, so regenerating
+ * `figure-800.webp` in place would leave returning visitors looking at the
+ * previous photo until their copy expired.
  */
 import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from "node:fs";
@@ -43,10 +43,19 @@ const MIN_STEP = 1.15;
 /**
  * Files that must keep their original bytes: the booth cutout is a transparent
  * PNG used as the pre-WebGL state (a lossy re-encode shows as a halo around the
- * silhouette), the `works/` stills already come from a design export, and the
- * TV artwork is referenced with explicit intrinsic dimensions.
+ * silhouette).
  */
-const SKIP = new Set(["phone-booth-cutout.png", "tv.webp"]);
+const SKIP = new Set(["phone-booth-cutout.png"]);
+
+/**
+ * Per-file overrides. The television artwork is the one image that is *not*
+ * laid out at a CSS size: `.tv-anchor` is `max(160vw, 230vh)`, i.e. ~2300 px
+ * wide on a desktop and ~1900 px on a phone (portrait), so the default
+ * 480/800/1200 ladder would be a soft mess. It gets its own, wider ladder.
+ */
+const OVERRIDES = {
+  "tv.webp": { widths: [1280, 1920, 2560], quality: 76 },
+};
 
 const force = process.argv.includes("--force");
 
@@ -55,7 +64,10 @@ function walk(dir) {
   return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
     const full = path.join(dir, entry.name);
     if (entry.isDirectory()) return entry.name === "opt" ? [] : walk(full);
-    return /\.(jpe?g|png)$/i.test(entry.name) ? [full] : [];
+    // `.webp` sources are included because the television artwork ships as one
+    // (a project usually replaces it with a photo); JPEG/PNG originals keep
+    // working as the `src` fallback.
+    return /\.(jpe?g|png|webp)$/i.test(entry.name) ? [full] : [];
   });
 }
 
@@ -66,9 +78,9 @@ const toUrl = (file) => `/${path.relative(path.join(ROOT, "public"), file).split
  * Pick the ladder for one image: drop widths the source cannot fill, then drop
  * neighbours that add no real choice (800 and 900 would be the same image).
  */
-async function ladderFor(file) {
+async function ladderFor(file, widths = WIDTHS) {
   const { width } = await sharp(file).metadata();
-  const capped = WIDTHS.filter((w) => w <= width);
+  const capped = widths.filter((w) => w <= width);
   if (!capped.length || width / capped[capped.length - 1] >= MIN_STEP * 1.05) capped.push(width);
   return capped.filter((w, index) => index === 0 || w / capped[index - 1] >= MIN_STEP);
 }
@@ -84,9 +96,11 @@ async function main() {
 
   for (const file of files) {
     const url = toUrl(file);
-    const stem = path.relative(SOURCE_DIR, file).replace(/\.(jpe?g|png)$/i, "").split(path.sep).join("-");
+    const stem = path.relative(SOURCE_DIR, file).replace(/\.(jpe?g|png|webp)$/i, "").split(path.sep).join("-");
     const hash = createHash("sha256").update(readFileSync(file)).digest("hex").slice(0, 8);
-    const widths = await ladderFor(file);
+    const override = OVERRIDES[path.basename(file)];
+    const widths = await ladderFor(file, override?.widths);
+    const quality = override?.quality ?? QUALITY;
     const { width, height } = await sharp(file).metadata();
     const candidates = [];
 
@@ -98,7 +112,7 @@ async function main() {
         await sharp(file)
           .rotate()
           .resize({ width: target, withoutEnlargement: true })
-          .webp({ quality: QUALITY, effort: 5 })
+          .webp({ quality, effort: 5 })
           .toFile(out);
         written += 1;
       } else {
@@ -110,6 +124,7 @@ async function main() {
     images[url] = {
       width,
       height,
+      quality,
       variants: [{ type: "image/webp", srcSet: candidates.join(", ") }],
     };
   }

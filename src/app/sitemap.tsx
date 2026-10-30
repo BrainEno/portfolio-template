@@ -20,7 +20,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   return [
     { url: `${origin}/`, lastModified: now, changeFrequency: "monthly", priority: 1 },
     ...content.works.items.map((work) => ({
-      url: `${origin}/works/${work.id}`,
+      // `trailingSlash: true` makes `/works/<id>/` the canonical address, so
+      // the sitemap must not advertise the extensionless form (GitHub Pages
+      // would answer it with a 301, which wastes a crawl).
+      url: `${origin}/works/${work.id}/`,
       lastModified: now,
       changeFrequency: "monthly" as const,
       priority: 0.7,

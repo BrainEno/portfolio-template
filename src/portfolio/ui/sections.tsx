@@ -3,6 +3,7 @@
 import { memo, useLayoutEffect, useRef, type CSSProperties } from "react";
 import TvShowreel from "./TvShowreel";
 import { Img } from "./Img";
+import { asset } from "../seo/asset";
 import { t } from "../content/normalize";
 import type { Language, PortfolioContent } from "../content/types";
 import { cx } from "./cx";
@@ -166,11 +167,16 @@ export function Works({ lang, content, phone, activeIndex, onPreview }: WorksPro
               <div className="tv-glass" aria-hidden="true" />
             </div>
             {/* Below the fold: no `<link rel=preload>` for artwork nobody has
-                scrolled to yet. */}
+                scrolled to yet.
+                `sizes` mirrors `.tv-anchor`'s `max(160vw, 230vh)`: the cabinet
+                is laid out far wider than the viewport (the glass, not the
+                box, is what fits the screen), so the default ladder would be
+                blurry. Portrait-ish viewports are height-driven. */}
             <Img
               className="tv-frame"
               src={src}
               alt=""
+              sizes="(max-aspect-ratio: 4/3) 230vh, 160vw"
               hidden
               loading="lazy"
               draggable={false}
@@ -235,7 +241,7 @@ const MARQUEE_REPEAT = Array.from({ length: 8 }, (_, i) => i);
  * repository as the source of truth). It replaces the cutout photo, which is
  * kept underneath as the pre-WebGL / no-WebGL state.
  */
-const BOOTH_MODEL_SRC = "/gltfs/telephone.glb";
+const BOOTH_MODEL_SRC = asset("/gltfs/telephone.glb");
 
 function ContactBooth({ fallback, plateText }: { fallback: string; plateText: string }) {
   return (

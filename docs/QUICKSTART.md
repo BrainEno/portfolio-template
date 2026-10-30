@@ -76,7 +76,7 @@ npm run build:static
 npm run preview            # http://localhost:3300
 ```
 
-`out/` 里就是上线用的那堆文件（≈6 MB）。`npm run preview` 是一个普通的静态服务器：和 GitHub Pages / Netlify 上的行为一致，
+`out/` 里就是上线用的那堆文件（≈6 MB）。`npm run preview` 是一个普通的静态服务器：和 GitHub Pages 上的行为一致，
 如果某个页面在这里打不开，说明它在线上也打不开。想让它替你把每个页面都点一遍：
 
 ```bash
@@ -85,14 +85,16 @@ npm run smoke      # 逐页断言状态码、404、robots、图片是否都在�
 
 ## 4. 部署
 
-最短路径是 **Netlify**：把仓库推到 GitHub，在 Netlify 里 Import，其余不用填（`netlify.toml` 已经写好）。
-唯一要设的变量是站点地址：
+站点部署在 **GitHub Pages**，仓库自带 workflow，不需要在别处导入项目：
 
-```
-NEXT_PUBLIC_SITE_URL = https://your-site.netlify.app
-```
+1. 仓库 **Settings → Pages → Source** 选 **GitHub Actions**（只需一次）；
+2. push 到 `main`，workflow 会先 typecheck / lint / 构建两次（根路径 + 子路径）并 smoke，
+   全绿之后才发布；
+3. 站点地址是 `https://<用户名>.github.io/<仓库>/`，workflow 里已经按仓库名自动设好
+   `NEXT_PUBLIC_BASE_PATH` 与 `NEXT_PUBLIC_SITE_URL`。
 
-其他平台（GitHub Pages / 对象存储 / nginx / 自己的服务器）见 [STATIC_EXPORT.md](STATIC_EXPORT.md)。
+想换成自定义域名或用户站（`<用户名>.github.io`）时，把 `NEXT_PUBLIC_BASE_PATH` 清空，
+其余不用改。对象存储 / nginx 等见 [STATIC_EXPORT.md](STATIC_EXPORT.md)。
 
 发布流程就是提交代码：
 
@@ -100,7 +102,7 @@ NEXT_PUBLIC_SITE_URL = https://your-site.netlify.app
 git add -A && git commit -m "content: 改了什么" && git push
 ```
 
-CI（Netlify / GitHub Actions）重新导出，站点更新。**没有「发布」按钮，部署本身就是发布。**
+GitHub Actions 重新导出，1 分钟左右站点更新。**没有「发布」按钮，部署本身就是发布。**
 
 ## 5. 备份
 

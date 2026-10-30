@@ -1,6 +1,7 @@
 /**
  * Renders the vector illustrations and starter placeholder media:
- *   public/images/tv.webp             - the television scene
+ *   public/images/tv-placeholder.webp   - the vector television scene
+ *   public/images/tv.webp               - only if it does not exist yet (see below)
  *   public/images/phone-booth-cutout.png - the telephone booth
  *   public/images/figure.jpg             - hero image
  *   public/images/profilephoto.jpg       - biography portrait
@@ -9,9 +10,11 @@
  *   public/images/works/*.jpg            - sample project covers
  *
  * Run:  node scripts/art/generate-art.mjs
+ *
+ * It never overwrites `tv.webp` (your own photo) — see the note further down.
  */
 import sharp from "sharp";
-import { mkdirSync, readFileSync } from "node:fs";
+import { copyFile, existsSync, mkdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 
 const root = path.resolve(import.meta.dirname, "..", "..");
@@ -24,7 +27,13 @@ mkdirSync(iconsOut, { recursive: true });
 
 const W = 2560;
 const H = 1707;
-const glass = { x: 0.428906 * W, y: 0.574107 * H, w: 0.132813 * W, h: 0.157006 * H };
+// Glass rectangle of the *placeholder* cabinet, in the same percentages the
+// content uses (`src/portfolio/content/defaults.ts` → `works.tv.screen`).
+// They must agree: if this artwork is ever seeded as `tv.webp` (a fresh clone
+// with no photo), the picture overlay is positioned from those percentages, so
+// a placeholder with the glass somewhere else would look broken.
+// Defaults today: { top: 57.18, left: 43.45, width: 12.9688, height: 15.8781 }.
+const glass = { x: 0.4345 * W, y: 0.5718 * H, w: 0.129688 * W, h: 0.158781 * H };
 
 const grain = (w, h, count, color) =>
   Array.from({ length: count }, (_, i) => {
@@ -184,7 +193,19 @@ async function renderCard(targetPath, w, h, title, subtitle, [c1, c2, c3]) {
 }
 
 // 1. Core vector artworks
-await sharp(Buffer.from(tvSvg)).webp({ quality: 88 }).toFile(path.join(out, "tv.webp"));
+//
+// The TV is the one piece of artwork a project is expected to *replace* with a
+// photo of its own, so regenerating it in place would silently destroy that
+// work. The vector scene is written to `tv-placeholder.webp`; `tv.webp` is
+// only seeded when it is still missing (a fresh clone of the template).
+const tvTarget = path.join(out, "tv.webp");
+await sharp(Buffer.from(tvSvg)).webp({ quality: 88 }).toFile(path.join(out, "tv-placeholder.webp"));
+if (existsSync(tvTarget)) {
+  console.log("[art] public/images/tv.webp exists — kept as is (placeholder written to tv-placeholder.webp)");
+} else {
+  await copyFile(path.join(out, "tv-placeholder.webp"), tvTarget);
+  console.log("[art] seeded public/images/tv.webp from the vector placeholder");
+}
 await sharp(Buffer.from(boothSvg)).png({ compressionLevel: 9 }).toFile(path.join(out, "phone-booth-cutout.png"));
 
 // 2. Portrait and Hero images

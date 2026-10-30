@@ -74,13 +74,18 @@ export const defaultContent: PortfolioContent = {
       src: "/images/tv.webp",
       width: 2560,
       height: 1707,
-      // Glass bounds measured from tv.webp (2560x1707): the tube glass
-      // runs x 1102-1428 / y 986-1246. The rect tucks ~4px under the dark
-      // inner bezel on the left (x 1098) so no photo-glass sliver can peek
-      // out beside the overlay during the zoom; the right edge stays under
-      // the wooden pillar. The frame photo (darken blend, z-index above)
-      // hides the bleed.
-      screen: { top: 57.4107, left: 42.8906, width: 13.2813, height: 15.7006 },
+      // Glass bounds of `tv.webp` (2560x1707), measured from the photo's
+      // gradients: the lit tube runs x 1124-1440 / y 986-1248. The rect is
+      // grown ~12px on every side so it can never be *smaller* than the glass —
+      // a sliver of the photo's own screen beside the picture is the one thing
+      // that reads as broken during the zoom. The bleed lands on the dark
+      // inner bezel, so it costs nothing visibly and absorbs the tube's curved
+      // corners, which a rectangle cannot follow.
+      //
+      // The CRT picture is layered *above* the artwork (see .tv-screen in
+      // portfolio.css), which is what lets it render at full brightness; this
+      // rect is therefore the visible boundary and needs to be right.
+      screen: { top: 57.18, left: 43.45, width: 12.9688, height: 15.8781 },
     },
     items: [
       // Five repositories with the highest 2026 commit counts on github.com/BrainEno

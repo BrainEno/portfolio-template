@@ -4,19 +4,21 @@
  *
  *   npm run build:static && npm run preview   # http://localhost:3300
  *
- * Two rules, both about honesty:
+ * Three rules, all about honesty:
  *
  * 1. **No help from a framework.** No SPA fallback, no rewrites, no extension
  *    guessing: a directory URL resolves to `index.html`, a missing path gets
- *    `404.html` with a 404 status — exactly like the hosts in
- *    docs/STATIC_EXPORT.md. If a page only works here because the server was
- *    clever, it is broken in production.
+ *    `404.html` with a 404 status — exactly like GitHub Pages. If a page only
+ *    works here because the server was clever, it is broken in production.
  *
- * 2. **The same transfer encoding as production.** Netlify/Brotli turn ~800 KB
- *    of JS into ~230 KB on the wire; a preview that serves it raw would report
- *    numbers nobody sees. Text assets are compressed on demand and cached in
- *    memory (they are immutable, so the cost is paid once), plus the same
- *    long-cache / no-cache split as `netlify.toml`.
+ * 2. **The same layout as production.** The export is mounted at whatever
+ *    sub-path it was built for (`out/build-meta.json`), so a project site is
+ *    previewed at `/repo/` and 404s everything outside it — the same place
+ *    a forgotten `asset()` prefix would break.
+ *
+ * 3. **Compression on.** Hosts compress; a preview that serves raw JS would
+ *    report transfer sizes nobody sees. Text assets are compressed on demand
+ *    and cached in memory, keyed by mtime.
  */
 import { existsSync, readFileSync, statSync } from "node:fs";
 import { createServer } from "node:http";
@@ -26,6 +28,21 @@ import { brotliCompressSync, gzipSync } from "node:zlib";
 const root = path.resolve(process.cwd(), process.env.OUT_DIR || "out");
 const port = Number(process.env.PORT || 3300);
 const host = process.env.HOST || "0.0.0.0";
+/**
+ * Sub-path the export is published under. Defaults to whatever the build was
+ * made for (`out/build-meta.json`), so `npm run preview` after a GitHub Pages
+ * build serves `http://localhost:3300/<repo>/` and 404s everything else — the
+ * same shape as the real host. `MOUNT=` (empty) forces the domain root.
+ */
+const metaFile = path.join(root, "build-meta.json");
+const builtBasePath = (() => {
+  try {
+    return JSON.parse(readFileSync(metaFile, "utf8")).basePath || "";
+  } catch {
+    return "";
+  }
+})();
+const mount = (process.env.MOUNT ?? builtBasePath).replace(/\/+$/, "");
 
 const TYPES = {
   ".html": "text/html; charset=utf-8",
@@ -54,7 +71,12 @@ const TYPES = {
 const COMPRESSIBLE = new Set([".html", ".js", ".mjs", ".css", ".json", ".webmanifest", ".xml", ".txt", ".svg"]);
 
 const resolve = (urlPath) => {
-  const clean = decodeURIComponent(urlPath.split("?")[0]).replace(/\/+$/, "");
+  let requested = decodeURIComponent(urlPath.split("?")[0]);
+  if (mount) {
+    if (requested !== mount && !requested.startsWith(`${mount}/`)) return null;
+    requested = requested.slice(mount.length) || "/";
+  }
+  const clean = requested.replace(/\/+$/, "");
   const target = path.join(root, clean);
   if (!target.startsWith(root)) return null;
   if (existsSync(target) && statSync(target).isDirectory()) {
@@ -85,7 +107,7 @@ function encoded(file, encoding, mtime) {
   return body;
 }
 
-createServer((req, res) => {
+const server = createServer((req, res) => {
   const file = resolve(req.url || "/");
   const status = file ? 200 : 404;
   const body = file || path.join(root, "404.html");
@@ -101,7 +123,10 @@ createServer((req, res) => {
 
   const headers = {
     "content-type": TYPES[ext] || "application/octet-stream",
-    // Mirrors the caching rules in netlify.toml so preview == production.
+    // The best case a host can do; GitHub Pages itself serves `max-age=600`.
+    // Fingerprinted bundles are immutable; HTML and everything else revalidate.
+    // (GitHub Pages cannot set headers and serves `max-age=600` — this is the
+    // best case, which is why the local numbers are the optimistic ones.)
     "cache-control": body.includes(`${path.sep}_next${path.sep}`) ? "public, max-age=31536000, immutable" : "no-cache",
     vary: "accept-encoding",
   };
@@ -120,6 +145,14 @@ createServer((req, res) => {
   headers.etag = `W/"${mtimeMs.toString(36)}"`;
   res.writeHead(status, headers);
   res.end(req.method === "HEAD" ? undefined : readFileSync(body));
-}).listen(port, host, () => {
-  console.log(`[preview] ${root} → http://localhost:${port}  (brotli/gzip on demand)`);
+});
+
+server.listen(port, host, () => {
+  // `PORT=0` asks the OS for a free port (used by smoke, so two runs can never
+  // collide); the real port is printed either way.
+  const actual = server.address().port;
+  console.log(
+    `[preview] ${root} → http://localhost:${actual}${mount || "/"}  (brotli/gzip on demand` +
+      `${mount ? `, mounted at ${mount}` : ""})`
+  );
 });
