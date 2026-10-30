@@ -1,7 +1,8 @@
 import type { Metadata, Viewport } from "next";
-import { Inria_Serif, Inter } from "next/font/google";
 import type { ReactNode } from "react";
-import { loadContent } from "@/portfolio/server/api";
+import { Inria_Serif, Inter } from "next/font/google";
+import { requireFreshRender } from "@/portfolio/content/mode";
+import { getSiteContent } from "@/portfolio/content/source";
 import { htmlLang, pageTitle, pickText, siteUrl, absoluteUrl } from "@/portfolio/seo/site";
 import PwaRegister from "@/portfolio/ui/PwaRegister";
 import "./globals.css";
@@ -11,10 +12,9 @@ import "./globals.css";
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter", display: "swap" });
 const inria = Inria_Serif({ subsets: ["latin"], weight: ["400", "700"], variable: "--font-inria", display: "swap" });
 
-export const dynamic = "force-dynamic";
-
 export async function generateMetadata(): Promise<Metadata> {
-  const content = await loadContent();
+  await requireFreshRender();
+  const content = await getSiteContent();
   const lang = content.identity.defaultLanguage;
   const title = pageTitle(content);
   const description = pickText(content.identity.description, lang);
@@ -53,7 +53,8 @@ export const viewport: Viewport = {
 };
 
 export default async function RootLayout({ children }: { children: ReactNode }) {
-  const content = await loadContent();
+  await requireFreshRender();
+  const content = await getSiteContent();
   return (
     <html lang={htmlLang(content.identity.defaultLanguage)} className={`${inter.variable} ${inria.variable}`} suppressHydrationWarning>
       <body>

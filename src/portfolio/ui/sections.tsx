@@ -1,6 +1,7 @@
 "use client";
 
-import { memo, type CSSProperties } from "react";
+import { memo, useLayoutEffect, useRef, type CSSProperties } from "react";
+import TvShowreel from "./TvShowreel";
 import { t } from "../content/normalize";
 import type { Language, PortfolioContent } from "../content/types";
 import { cx } from "./cx";
@@ -138,9 +139,10 @@ export function Works({ lang, content, phone, activeIndex, onPreview }: WorksPro
             <div className={cx("tv-screen", active && "has-preview")}>
               <div className="tv-screen-base" />
               <div className="tv-showreel">
-                {active ? (
-                  <img key={active.id} className="tv-cover" src={active.image.src} alt={t(active.image.alt, lang)} decoding="async" />
-                ) : null}
+                <TvShowreel
+                  active={active ? { id: active.id, src: active.image.src, alt: active.image.alt } : null}
+                  label={(text) => t(text, lang)}
+                />
               </div>
               <div className="tv-scanlines" aria-hidden="true" />
               <div className="tv-glass" aria-hidden="true" />
@@ -226,10 +228,62 @@ export const Contact = memo(function Contact({ lang, content }: SectionProps<"co
   const handleHref = dialable ? `tel:${content.phone.replace(/[^\d+]/g, "")}` : content.credit.url;
   const handleExternal = !dialable;
   const marquee = t(content.marquee, lang);
+  const headlinesRef = useRef<HTMLDivElement>(null);
+  const headlineKey = content.headlines.join("\n");
+
+  /**
+   * Types the call sign to the largest size that still clears the booth.
+   *
+   * CSS can only bound the block by a hard-coded em width, and that constant is
+   * a property of the typeface: "MARQUEE MOON" measures ~8.3em in the metrics
+   * here, but a fallback or a future face can be wider — and then the third
+   * line runs into the model at exactly the sizes where the block looks best.
+   * So the ratio is measured off the rendered line instead of assumed: widest
+   * line against the gap to the booth's silhouette. It only ever scales *down*
+   * (the CSS clamp stays the preferred ceiling), and re-runs on resize and once
+   * the webfont has landed.
+   */
+  useLayoutEffect(() => {
+    const block = headlinesRef.current;
+    if (!block) return;
+    const fit = () => {
+      block.style.removeProperty("--contact-fs");
+      const booth = block.parentElement?.querySelector<HTMLElement>(".contact-booth");
+      // Below 768px the booth is stacked under the copy, not beside it: there
+      // is no column to fit against and the type keeps its mobile size.
+      if (!booth || !block.isConnected || getComputedStyle(booth).position !== "absolute") return;
+      // `.contact-line-word` is a block, so its own rect is the full line box;
+      // the glyph run is measured with a Range instead.
+      const range = document.createRange();
+      let widest = 0;
+      for (const el of Array.from(block.querySelectorAll(".contact-line-word"))) {
+        range.selectNodeContents(el);
+        widest = Math.max(widest, range.getBoundingClientRect().width);
+      }
+      range.detach();
+      const box = block.getBoundingClientRect();
+      const stage = booth.getBoundingClientRect();
+      // The drawn silhouette starts ~11% inside the stage box (the stage is
+      // wider than the booth itself), so that is where the copy has to stop.
+      const available = stage.left + stage.width * 0.11 - box.left - 18;
+      if (widest <= 0 || available <= 0) return;
+      const ratio = available / widest;
+      if (ratio >= 1) return;
+      // `.contact-headlines` owns the token; `.contact-line` reads it, so the
+      // fit does not have to touch three elements and fight the clamp.
+      const size = parseFloat(getComputedStyle(block.querySelector(".contact-line") ?? block).fontSize);
+      block.style.setProperty("--contact-fs", `${Math.max(24, size * ratio).toFixed(2)}px`);
+    };
+    fit();
+    window.addEventListener("resize", fit);
+    document.fonts?.ready.then(fit).catch(() => {});
+    return () => window.removeEventListener("resize", fit);
+  }, [headlineKey]);
+
   return (
     <section id="contact" className="contact">
       <div className="contact-inner">
-        <div className="contact-headlines">
+        <div className="contact-headlines" ref={headlinesRef}>
           {content.headlines.map((line, index) => (
             <h2 key={index} className={`contact-line contact-line-${index + 1}`}>
               {/* GSAP animates .contact-line-text; the inner word carries the

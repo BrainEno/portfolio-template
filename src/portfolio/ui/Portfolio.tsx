@@ -135,8 +135,12 @@ export default function Portfolio({
   mode = "postgres",
 }: {
   content: PortfolioContent;
-  /** `demo` renders the browser-cached draft so /admin edits preview live. */
-  mode?: "demo" | "postgres";
+  /**
+   * `demo` renders the browser-cached draft so /admin edits preview live;
+   * `static` is a build-time export where the server payload is the only truth
+   * and nothing is polled.
+   */
+  mode?: "demo" | "postgres" | "static";
 }) {
   const { content, revision } = useLiveContent(serverContent, mode);
   const scopeRef = useRef<HTMLDivElement>(null);

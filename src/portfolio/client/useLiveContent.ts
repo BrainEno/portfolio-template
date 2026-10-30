@@ -12,7 +12,7 @@ import { readDemoContent, subscribeDemoContent } from "./demo-store";
  * In live mode the database payload always wins and any local draft is
  * ignored — connecting PostgreSQL automatically retires the mock data.
  */
-export function useLiveContent(serverContent: PortfolioContent, mode: "demo" | "postgres") {
+export function useLiveContent(serverContent: PortfolioContent, mode: "demo" | "postgres" | "static") {
   const isDemo = mode === "demo";
   const [content, setContent] = useState<PortfolioContent>(serverContent);
   const [revision, setRevision] = useState(0);
