@@ -1,9 +1,9 @@
 import type { NextConfig } from "next";
 
 /**
- * This site ships as plain files: `npm run build:static` writes `out/`, and any
- * static host (GitHub Pages, Netlify, an OSS bucket, nginx) serves it. There is
- * no server build, no API routes and no database.
+ * This site ships as plain files: `npm run build:static` writes `out/`, and
+ * GitHub Pages (or any static host) serves it. There is no server build, no API
+ * routes and no database.
  *
  * `NEXT_PUBLIC_BASE_PATH` prefixes the router and every asset, for hosts that
  * serve a project site from a sub-path (`/repo/`). The public origin

@@ -1,4 +1,5 @@
 import manifest from "../content/image-manifest.json";
+import { asset } from "../seo/asset";
 
 /**
  * One `<img>` for the whole site, so responsive images are not something each
@@ -17,6 +18,11 @@ import manifest from "../content/image-manifest.json";
  *   `.tv-frame`, …) and flex/grid geometry depends on the `<img>` being the
  *   boxed element. An extra element in between is a layout bug waiting to
  *   happen, so the WebP candidates ride on the `<img>` itself.
+ *
+ * Paths are run through `asset()` because the content JSON stores them
+ * root-absolute (`/images/figure.jpg`) while the site may be served from a
+ * sub-path on GitHub Pages. The manifest is keyed by the *content* path, so
+ * lookups happen before the prefix is applied.
  */
 type MediaManifest = {
   images: Record<string, { width: number; height: number; variants: { type: string; srcSet: string }[] }>;
@@ -43,7 +49,15 @@ type ImgProps = {
 
 /** The WebP candidate list for a source, if one was generated. */
 export function srcSetFor(src: string): string | undefined {
-  return IMAGES[src]?.variants.find((variant) => variant.type === "image/webp")?.srcSet;
+  const srcSet = IMAGES[src]?.variants.find((variant) => variant.type === "image/webp")?.srcSet;
+  if (!srcSet) return undefined;
+  return srcSet
+    .split(",")
+    .map((candidate) => {
+      const [url, descriptor] = candidate.trim().split(/\s+/);
+      return descriptor ? `${asset(url)} ${descriptor}` : asset(url);
+    })
+    .join(", ");
 }
 
 export function intrinsicSize(src: string): { width: number; height: number } | undefined {
@@ -71,7 +85,7 @@ export function Img({
     // eslint-disable-next-line @next/next/no-img-element
     <img
       className={className}
-      src={src}
+      src={asset(src)}
       srcSet={srcSet}
       // `sizes` is meaningless without a candidate list, and a stray one would
       // only make the browser do more work in the preload scanner.

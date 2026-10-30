@@ -20,10 +20,10 @@
  * `ui/Img.tsx`, so it has to be committed too — the components must be able to
  * resolve `srcSet`s without running this script.
  *
- * File names carry a hash of the source (`figure-800.1f2a3b4c.webp`) because
- * every host serves `/images/*` with `immutable` for a year (see
- * `netlify.toml`): regenerating `figure-800.webp` in place would leave returning
- * visitors looking at the previous photo until the header expired.
+ * File names carry a hash of the source (`figure-800.1f2a3b4c.webp`): hosts and
+ * service workers cache `/images/*` aggressively, so regenerating
+ * `figure-800.webp` in place would leave returning visitors looking at the
+ * previous photo until their copy expired.
  */
 import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from "node:fs";

@@ -4,6 +4,7 @@ import { gsap } from "gsap";
 import { useEffect, useRef, useState } from "react";
 import type { LocalizedText } from "../content/types";
 import { srcSetFor } from "./Img";
+import { asset } from "../seo/asset";
 
 export type TvWork = { id: string; src: string; alt: LocalizedText };
 
@@ -180,7 +181,7 @@ export default function TvShowreel({ active, label }: Props) {
       <img
         ref={coverRef}
         className="tv-cover"
-        src={shown?.src || undefined}
+        src={shown ? asset(shown.src) : undefined}
         srcSet={shown ? srcSetFor(shown.src) : undefined}
         sizes={shown?.src ? "(max-width: 767px) 80vw, 55vw" : undefined}
         alt={shown ? label(shown.alt) : ""}

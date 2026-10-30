@@ -1,4 +1,4 @@
-# 静态发布（GitHub Pages / Netlify / OSS / nginx）
+# 发布到 GitHub Pages
 
 整站是一个静态导出：`npm run build:static` 产出 `out/`，任何能发文件的服务器都能托管。
 没有 Node 运行时、没有数据库、没有 `/api`。
@@ -13,9 +13,11 @@ npm run smoke                                                  # 逐页爬一遍
 ```
 
 `npm run preview` 是一个普通静态服务器（`scripts/preview.mjs`），行为和线上托管一致：
-目录 URL 解析到 `index.html`，找不到的路径返回 `404.html` + 404 状态码，缓存头和 `netlify.toml` 保持一致，
-文本资源按 `Accept-Encoding` 现场 Brotli/gzip（与 Netlify 同口径，不然本地量出来的传输体积没有意义）。
-如果某个页面在这里打不开，它在线上也打不开。
+目录 URL 解析到 `index.html`，找不到的路径返回 `404.html` + 404 状态码，
+文本资源按 `Accept-Encoding` 现场 Brotli/gzip（不然本地量出来的传输体积没有意义）。
+**它还会读构建产物里的 `out/build-meta.json`，按那次构建真正的部署路径挂载**——
+用 `NEXT_PUBLIC_BASE_PATH=/repo` 构建后，它会开在 `http://localhost:3300/repo/`，
+前缀之外一律 404，和 Pages 项目站一模一样。如果某个页面在这里打不开，它在线上也打不开。
 
 `npm run smoke` 在同一个服务器上做无人值守的回归：按 `sitemap.xml` 遍历每个页面（200 + `text/html`）、
 断言 `/admin/` 之类的路径是 **404**、`robots.txt` 只 `Disallow: /offline`、首页引用的每个
@@ -65,42 +67,46 @@ NEXT_PUBLIC_SITE_URL=https://example.com npm run build:static
 
 （`SITE_URL` 也可以；两个都没设时会用 `http://localhost:3000`，`build:static` 会打印提醒。）
 
-## Netlify
+## GitHub Pages（本项目的默认目标）
 
-仓库根目录的 `netlify.toml` 已经写好，不需要在 UI 里填构建命令：
+仓库自带 `.github/workflows/static.yml`：push 到 `main` → `verify`（typecheck / lint /
+两种路径各构建一次并 smoke）→ `build` → `deploy`。**首次部署只需要在仓库
+Settings → Pages → Source 选 “GitHub Actions”**，之后不用再动。
 
-```toml
-[build]
-  command = "npm run build:static"
-  publish = "out"
+项目站（`https://<用户名>.github.io/<仓库>/`）在子路径下，workflow 已经设好两个变量：
+
+```bash
+NEXT_PUBLIC_SITE_URL=https://<用户名>.github.io/<仓库>
+NEXT_PUBLIC_BASE_PATH=/<仓库>
 ```
 
-步骤：把仓库推到 GitHub → Netlify → **Add new project → Import an existing project** → 选中仓库 →
-在 **Environment variables** 里加 `NEXT_PUBLIC_SITE_URL`（例如 `https://your-site.netlify.app`）→ Deploy。
-
-`netlify.toml` 里还带了三件线上需要的东西：
-
-- `_next/static`、`images`、`gltfs`、`fonts` 长缓存（`max-age=31536000, immutable`）；
-- `sw.js` 强制 `no-cache`（否则旧 Service Worker 会一直发旧文件）；
-- `/works/:id` → `/works/:id/` 的 301（旧链接、分享链接不会 404）。
-
-**没有** `@netlify/plugin-nextjs`：这里没有 serverless function 可跑，插件只会让部署变慢。
-
-## GitHub Pages
+自己手动构建时同理：
 
 ```bash
 NEXT_PUBLIC_SITE_URL=https://<用户名>.github.io/<仓库> NEXT_PUBLIC_BASE_PATH=/<仓库> npm run build:static
-npx gh-pages -d out          # 或把 out/ 推到 gh-pages 分支
+npm run preview      # 自动开在 http://localhost:3300/<仓库>/
 ```
 
-仓库自带 `.github/workflows/static.yml`，push 到 `main` 就自动构建并发布
-（首次需要在 Settings → Pages 里把 Source 选成 “GitHub Actions”；workflow 会自动加
-`NEXT_PUBLIC_BASE_PATH` 和 `.nojekyll`）。
+**子路径是这类站最容易踩的坑**：Next 的 `basePath` 只作用于路由和 `_next/` 资源，
+内容里手写的 `/images/…`、`/gltfs/…` 不会被自动加前缀。所以有几个地方必须走
+`seo/asset.ts#asset()`（图片、电视画面、电话亭模型与兜底图）、`BASE_PATH`
+（manifest 的 `id`/`start_url`/`scope`/icons、robots 的 `Disallow`）、
+以及 Service Worker 的 scope。`npm run smoke` 会在“挂载到子路径”的模式下逐页检查，
+漏掉任何一处都会在 CI 里失败，而不是上线后变成一堆裂图。
 
-**如果站点在子路径下**（`/仓库名/`），必须设置 `NEXT_PUBLIC_BASE_PATH=/仓库名`：
-构建时会加上 `basePath` 与 `assetPrefix`，站内链接和静态资源都会跟着前缀走。
+**用户站 / 自定义域名**（`BrainEno.github.io` 或 `your-domain.com`）在根路径，
+把 `NEXT_PUBLIC_BASE_PATH` 清空即可，其余不用改。
 
-## 对象存储 / OSS / COS / S3
+Pages 不能自定义响应头：`_next/static/*` 会被它缓存 10 分钟，`sw.js` 也是。
+所以发布新版本后最多 10 分钟才全员可见——这是 Pages 的固有行为，不是站点的问题。
+
+## 其他静态托管（可选）
+
+`out/` 就是一堆文件，没有哪一项依赖 Pages。真要换宿主，只有两个构建期变量要改：
+`NEXT_PUBLIC_SITE_URL`（站点地址，写进 canonical / sitemap / robots）和
+`NEXT_PUBLIC_BASE_PATH`（在子路径下才需要，根路径留空）。
+
+### 对象存储 / OSS / COS / S3
 
 ```bash
 NEXT_PUBLIC_SITE_URL=https://cdn.example.com npm run build:static
@@ -110,7 +116,7 @@ aws s3 sync out/ s3://你的桶 --delete        # 或 ossutil cp -r out/ --updat
 注意两点：`works/<slug>/` 这类**目录索引**要开启「默认首页 index.html」；
 `_next/static/` 下的文件带内容哈希，可以放心 `Cache-Control: immutable`。
 
-## Nginx / 任意静态服务器
+### Nginx / 任意静态服务器
 
 ```nginx
 root /var/www/portfolio/out;
@@ -125,8 +131,9 @@ location = /sw.js { add_header Cache-Control "no-cache, max-age=0"; }
 | 现象 | 原因 | 处理 |
 |---|---|---|
 | 作品页 404 | 目录索引没开（`works/slug/` 需要解析到 `index.html`） | 按上面的 nginx / OSS 配置开默认文档 |
+| 样式和 JS 正常但**图片全裂** | 内容里的绝对路径少了子路径前缀 | 确认用的是 `asset()`（`npm run smoke` 在子路径模式下会直接报出漏掉的 URL） |
 | 子路径下样式和 JS 全 404 | 少了 `NEXT_PUBLIC_BASE_PATH` | 重新构建，值就是子路径（`/repo`，带前导斜杠，不带尾斜杠） |
-| 部署后看到旧版本 | Service Worker 缓存 | 新 `sw.js` 会接管；确认它有 `no-cache` 头 |
+| 部署后看到旧版本 | Service Worker 缓存，或 Pages 的 10 分钟缓存 | 等一会儿，或强制刷新；新 `sw.js` 会接管 |
 | `sitemap.xml` 全是 localhost | 构建时没设 `NEXT_PUBLIC_SITE_URL` | 设好后重新构建 |
 | 图片不显示 | `images.unoptimized` 模式下走的是 `public/` 里的原文件 | 检查路径大小写，Linux 上区分大小写 |
 

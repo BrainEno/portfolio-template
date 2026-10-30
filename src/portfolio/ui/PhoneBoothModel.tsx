@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import type { BoothHandle } from "../three/booth";
+import { asset } from "../seo/asset";
 
 type Props = {
   /** Optimised GLB of the uploaded telephone model. */
@@ -104,7 +105,7 @@ export function PhoneBoothModel({ src, fallback, spin = 0.16, plateText }: Props
           writing `style.opacity` straight to the DOM, so it needs the ref, and it
           is a transparent cutout that must not be re-encoded. */}
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img ref={stillRef} className="contact-booth-still" src={fallback} alt="" loading="lazy" decoding="async" />
+      <img ref={stillRef} className="contact-booth-still" src={asset(fallback)} alt="" loading="lazy" decoding="async" />
     </div>
   );
 }

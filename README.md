@@ -2,7 +2,8 @@
 
 单页滚动叙事：旋转标题、肖像长卷、电视机作品索引、白场转场接 3D 电话亭收尾。
 
-**整站是一个纯静态导出**：`npm run build:static` 产出一个 `out/` 文件夹，丢到 GitHub Pages / Netlify / 对象存储 / nginx 就能跑。
+**整站是一个纯静态导出**：`npm run build:static` 产出一个 `out/` 文件夹，**默认部署到 GitHub Pages**（仓库自带 workflow），
+丢到对象存储 / nginx 也一样能跑。
 没有服务器、没有数据库、没有 API 路由——因此也没有需要维护的连接串、迁移和运行时。
 
 技术栈：Next.js 16（App Router，`output: "export"`）· React 19 · TypeScript · GSAP（ScrollTrigger + ScrollSmoother）· three.js · 自托管字体（`@fontsource`）。
@@ -59,18 +60,22 @@ CI 重新导出，站点更新。没有后台、没有数据库、没有需要�
 
 | 目标 | 做法 | 文档 |
 |---|---|---|
-| **Netlify** | 连仓库即可，`netlify.toml` 已写好（`npm run build:static` → `out`） | [docs/STATIC_EXPORT.md](docs/STATIC_EXPORT.md#netlify) |
-| GitHub Pages | 仓库自带 workflow（`.github/workflows/static.yml`） | [docs/STATIC_EXPORT.md](docs/STATIC_EXPORT.md#github-pages) |
+| **GitHub Pages**（默认） | 仓库自带 workflow，push 到 `main` 自动发布；**首次要在 Settings → Pages → Source 选 “GitHub Actions”** | [docs/STATIC_EXPORT.md](docs/STATIC_EXPORT.md#github-pages本项目的默认目标) |
 | 对象存储 / OSS / S3 | 上传 `out/` 里的文件，`index.html` 作默认文档 | [docs/STATIC_EXPORT.md](docs/STATIC_EXPORT.md#对象存储--oss--cos--s3) |
 | nginx / 自己的服务器 | `root /path/to/out; try_files $uri $uri/ =404;` | [docs/STATIC_EXPORT.md](docs/STATIC_EXPORT.md#nginx--任意静态服务器) |
 
-部署前唯一必须设的变量是站点地址（会写进 canonical、`sitemap.xml`、`robots.txt`）：
+部署前必须设的是**站点地址**（写进 canonical、`sitemap.xml`、`robots.txt`），
+项目站还要加子路径（workflow 里已经按仓库名自动设好）：
 
 ```bash
-NEXT_PUBLIC_SITE_URL=https://your-site.netlify.app npm run build:static
+NEXT_PUBLIC_SITE_URL=https://<user>.github.io/<repo> \
+NEXT_PUBLIC_BASE_PATH=/<repo> \
+npm run build:static
 ```
 
-子路径托管（如 GitHub Pages 的项目站 `/<repo>/`）再加 `NEXT_PUBLIC_BASE_PATH=/<repo>`。
+> 子路径是这类站点最容易踩的坑：Next 的 `basePath` 只管路由和 `_next/`，
+> 内容里手写的 `/images/…` 不会自动加前缀。本项目用 `seo/asset.ts#asset()` 统一处理，
+> 并且 `npm run smoke` 会在“挂载到子路径”模式下逐页验证——漏一处 CI 就红。
 
 ## 常用命令
 
@@ -99,7 +104,7 @@ src/portfolio/
 public/                  images(+ opt/ 生成的 WebP) · gltfs · icons · sw.js(离线缓存)
 assets/models/           建模源文件：telephone.gltf（38 MB，不进导出目录）
 scripts/                 build-static.mjs · build-images.mjs · smoke.mjs · preview.mjs · art/
-netlify.toml · .github/workflows/static.yml
+.github/workflows/static.yml
 ```
 
 ## 文档

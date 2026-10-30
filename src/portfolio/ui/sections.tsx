@@ -3,6 +3,7 @@
 import { memo, useLayoutEffect, useRef, type CSSProperties } from "react";
 import TvShowreel from "./TvShowreel";
 import { Img } from "./Img";
+import { asset } from "../seo/asset";
 import { t } from "../content/normalize";
 import type { Language, PortfolioContent } from "../content/types";
 import { cx } from "./cx";
@@ -235,7 +236,7 @@ const MARQUEE_REPEAT = Array.from({ length: 8 }, (_, i) => i);
  * repository as the source of truth). It replaces the cutout photo, which is
  * kept underneath as the pre-WebGL / no-WebGL state.
  */
-const BOOTH_MODEL_SRC = "/gltfs/telephone.glb";
+const BOOTH_MODEL_SRC = asset("/gltfs/telephone.glb");
 
 function ContactBooth({ fallback, plateText }: { fallback: string; plateText: string }) {
   return (

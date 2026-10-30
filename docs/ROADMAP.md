@@ -11,6 +11,48 @@
 
 ---
 
+## 本轮已交付（第九轮，2026-10-30）
+
+### 结论：Next.js 支持 GitHub Pages，不需要迁移框架
+
+排查顺序先是「能不能不迁移」。答案是可以：`output: "export"` 已经把整站变成文件，
+Pages 只是一个发文件的服务器。**代价不在框架，而在于子路径**——项目站挂在
+`/<repo>/` 下，而 Next 的 `basePath` 只作用于路由和 `_next/` 资源，**不会**改写内容里
+手写的 `/images/…`、`/gltfs/…`。
+
+所以没有迁移到 Astro / React Router 7：那需要重写 GSAP 滚动编排（`choreography.ts`
+约 500 行）、three.js 电话亭、ScrollSmoother 的 pin/scrub 结构，风险与工作量都远超
+「给十几个路径加前缀」。真要迁，动因应该是**想去掉框架**，而不是想去 Pages。
+
+### 修掉的子路径问题（每一条都会在线上裂开）
+
+| 位置 | 症状 | 修法 |
+|---|---|---|
+| `<img src>` / `srcSet` | 全站图片 404（HTML/CSS/JS 却正常） | 新增 `seo/asset.ts#asset()`，`ui/Img.tsx` 统一调用 |
+| 电视封面 `TvShowreel` | 换台后画面 404 | `asset(shown.src)` |
+| 电话亭模型 | 3D 不出、退化成兜底图又 404 | `BOOTH_MODEL_SRC = asset(...)` |
+| 电话亭兜底抠图 | 同上 | `asset(fallback)` |
+| `manifest.webmanifest` | 安装后打开 `github.io` 根、图标 404 | `id` / `start_url` / `scope` / icons 走 `BASE_PATH` |
+| `robots.txt` | `Disallow: /offline` 少了前缀（等于没屏蔽） | `Disallow: /portfolio-template/offline` |
+| Service Worker | 子路径下**直接不注册**，PWA/离线全失效 | scope 与脚本都带前缀；`sw.js` 从 `registration.scope` 反推 `BASE` |
+| `sitemap.xml` | 作品页少了尾斜杠，与 canonical 不一致（多一次 301） | 与 `trailingSlash` 对齐 |
+
+### 让这类问题不可能再悄悄上线
+
+- `preview.mjs` 支持 `MOUNT`，并**自动读取构建产物里的 `out/build-meta.json`**：
+  按子路径构建后，预览直接开在 `http://localhost:3300/<repo>/`，前缀之外一律 404。
+  （否则很容易「用带前缀的产物去测根路径服务器」——现象和站点全坏一模一样。）
+- `smoke.mjs` 在子路径模式下会额外断言 manifest scope、前缀外不可访问，
+  并**逐页检查 78 个资源 URL**；顺手暴露了两个真问题：sitemap 尾斜杠、`preconnect` 误报。
+- CI 的 `verify` 现在**两种路径各构建一次并各跑一次 smoke**，全绿才允许发布。
+
+### 部署收敛到 GitHub Pages
+
+- 删除 `netlify.toml`（不再维护第二条部署路径，避免出现「文档说支持、实际没测过」）；
+  `docs/STATIC_EXPORT.md` 重写为 Pages 口径，其他静态托管留一节说明。
+- `.github/workflows/static.yml`：`verify`（PR + push）→ `build` → `deploy`，仅 `main` 发布。
+- 首次部署仍需在仓库 Settings → Pages → Source 选 “GitHub Actions”（一次性，无法由代码完成）。
+
 ## 本轮已交付（第八轮，2026-10-30）
 
 ### 1. 图片管线：一张图不再等于一张 4K 图
@@ -27,8 +69,8 @@
   `<link rel=preload>`，hero 的装饰条与电视机插画改成 `lazy` 后消失。
 - 实测（1440×900）：`figure.jpg 53 KB → figure-800.webp 8.8 KB`，
   `work*.jpg 39 KB → 7 KB`，首屏图片总量约 −70%。
-- 文件名带源图哈希（`figure-800.e679805a.webp`）：`/images/*` 在 `netlify.toml` 里是
-  `immutable, max-age=1y`，原地覆盖同名文件会让回访用户看一年的旧照片。
+- 文件名带源图哈希（`figure-800.e679805a.webp`）：`/images/*` 会被托管和 Service Worker
+  长期缓存，原地覆盖同名文件会让回访用户看很久的旧照片。
 
 ### 2. 仓库与产物瘦身：`out/` 43 MB → 6.2 MB
 
@@ -39,9 +81,9 @@
 
 ### 3. 预览服务器不再"比生产更差"
 
-`scripts/preview.mjs` 加了按需 Brotli/gzip（文本类资源，内存缓存）+ `content-length`，
-与 `netlify.toml` 的缓存头一致。此前本地预览把 160 KB 的 chunk 原样吐出去、线上
-Netlify 压成 51 KB——用这种预览量性能，量到的是服务器的问题，不是页面的问题。
+`scripts/preview.mjs` 加了按需 Brotli/gzip（文本类资源，内存缓存）+ `content-length`。
+此前本地预览把 160 KB 的 chunk 原样吐出去、线上托管压成 51 KB——用这种预览量性能，
+量到的是服务器的问题，不是页面的问题。
 
 ### 4. `prefers-reduced-motion` 从"少动"改成"不动"
 
@@ -98,8 +140,11 @@ mock。**不要再把这些条目当待办**；若将来真需要在线编辑，
 - [ ] **换成自己的内容与图片**：`published.json`（或 `defaults.ts`）里的名字、两段简介、
       五个 works、邮箱；`public/images/` 里全是模板占位图（`FIGURE / HERO SCENE`、
       `PORTRAIT / BIOGRAPHY`…），必须替换。替换后跑一次 `npm run images`。
-- [ ] **设 `NEXT_PUBLIC_SITE_URL`**：canonical、`sitemap.xml`、`robots.txt`、
-      OG 图绝对地址都由它派生；没设会指向 `localhost:3000`。
+- [ ] **启用 Pages**：仓库 Settings → Pages → Source 选 “GitHub Actions”（一次性）。
+      启用前 `deploy` job 会在 `configure-pages` 一步失败，workflow 显示红但是代码没问题。
+- [ ] **设 `NEXT_PUBLIC_SITE_URL` / `NEXT_PUBLIC_BASE_PATH`**：canonical、`sitemap.xml`、
+      `robots.txt`、OG 图绝对地址由前者派生；项目站在子路径下还需要后者。
+      两个值在 workflow 里已按仓库名自动填好，改用自定义域名时才需要手工改。
 - [ ] **真机回归**：iOS Safari / Android Chrome 各走一遍（pin、ScrollSmoother、
       中文断行、电话亭 WebGL 与拖拽、电视换台），留截图存档。
 - [ ] **Lighthouse 预算定档**：移动模拟、本地 Brotli 预览，第八轮前后：
@@ -131,6 +176,7 @@ mock。**不要再把这些条目当待办**；若将来真需要在线编辑，
       电话亭兜底图、电视机关机态都要体面。
 - [ ] **SW 策略复核**：`public/sw.js` 仍是 cache-first 静态资源 + 导航 network-first；
       换版本后旧 chunk 的清理、`/images/opt/` 的缓存预算（现在多了 64 个文件）要确认。
+      注意 Pages 无法自定义响应头，`sw.js` 本身会被缓存 10 分钟，新版本不是立刻生效。
 
 ## P2 — 长期演进
 

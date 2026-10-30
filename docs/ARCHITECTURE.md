@@ -15,6 +15,7 @@
 | `Dockerfile`、`docker-compose.yml`、`deploy/`、`scripts/{setup,deploy,vps-install,doctor}.sh` | 不再需要跑一个进程 |
 | `export/react-router/`（第二份工程）、`/adam` 只读路由、`admin/Login.tsx` | 重复入口；静态站没有「登录」这回事 |
 | `docs/{DEPLOY,PLATFORM_DEPLOY,NETLIFY_DEPLOY,SETUP}.md` | 并入 `STATIC_EXPORT.md` / `QUICKSTART.md` |
+| `netlify.toml` | 只部署 GitHub Pages，配置由 `.github/workflows/static.yml` 承担 |
 | `/admin` 路由、`portfolio/admin/*`、`portfolio/client/*`、`admin.css`、`content:export` 脚本 | 静态站没有可写的地方，浏览器内的编辑器只是模拟器（见第 2 节） |
 
 保留并强化的部分：`src/portfolio` 作为与路由解耦的领域模块、`content/` 作为唯一内容契约、
@@ -53,12 +54,19 @@
 
 | 请求 | 策略 |
 |---|---|
-| `/_next/static`、`/images`、`/fonts`、`/icons`、`/gltfs` | cache-first |
-| 页面导航 | network-first → 缓存副本 → `/offline` |
+| `_next/static`、`images`、`fonts`、`icons`、`gltfs` | cache-first |
+| 页面导航 | network-first → 缓存副本 → `offline` |
 | manifest | network-first，离线读缓存 |
 | 非 GET | 不缓存 |
 
-`PwaRegister` 仅在生产构建注册；开发模式反而会注销旧 SW。manifest 提供 192/512/maskable 图标与快捷方式，可安装为桌面应用。
+**没有一处写死绝对路径**：GitHub Pages 项目站在 `/repo/` 下，worker 用 `self.registration.scope`
+反推出自己的前缀（`BASE`），CORE 列表、静态资源前缀、离线兜底页全部由 `at()` 拼出来。
+`PwaRegister` 同时把脚本地址和 scope 都带上 `BASE_PATH`——注册在源站根目录的 worker 会 404，
+而且万一存在会接管整个 `*.github.io` 域（包括别人的项目）。实测：scope 是
+`/repo/`、缓存键全部带前缀、断网刷新仍能从缓存打开首页。
+
+`PwaRegister` 仅在生产构建注册；开发模式反而会注销旧 SW。manifest 提供 192/512/maskable 图标
+与快捷方式，可安装为桌面应用（`id`/`start_url`/`scope`/icons 都带部署前缀，否则装上去会打开站根）。
 更新缓存：修改 `sw.js` 的 `VERSION`。
 
 ## 5. 图片「画框」约定（换图不用管尺寸）

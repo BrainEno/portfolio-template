@@ -1,12 +1,14 @@
-name: Static site
+name: Static site → GitHub Pages
 
 # Two jobs, one rule: nothing gets published that has not been served and
 # crawled locally first.
 #
-#  verify — every push and every PR: typecheck, lint, static export, then
-#           `scripts/smoke.mjs` boots the export on a plain file server and
-#           checks every sitemap page, the 404s, robots.txt and every image
-#           candidate. No browser, ~2 s.
+#  verify — every push and every PR: typecheck, lint, then the export is built
+#           **twice** and smoke-tested both ways:
+#             · at the domain root (custom domain / Netlify / OSS / nginx)
+#             · mounted at /<repo>/ (a Pages *project* site, where a missing
+#               base-path prefix 404s every image while the JS still loads)
+#           The sub-path run is the one that would have shipped broken.
 #  build/deploy — pushes to main only, publishes the same export to Pages.
 #
 # Nothing here talks to a database: the build reads `content/defaults.ts` or the
@@ -26,6 +28,13 @@ concurrency:
   group: pages-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  # Project sites live at /<repo>/. A user site (BrainEno.github.io) or a custom
+  # domain is served from the root and needs this cleared — everything else in
+  # the build follows from it.
+  NEXT_PUBLIC_BASE_PATH: /${{ github.event.repository.name }}
+  NEXT_PUBLIC_SITE_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}
+
 jobs:
   verify:
     runs-on: ubuntu-latest
@@ -40,14 +49,18 @@ jobs:
         run: npm run typecheck
       - name: Lint
         run: npm run lint
-      - name: Build static export
+      - name: Build (domain root)
         env:
+          NEXT_PUBLIC_BASE_PATH: ""
           NEXT_PUBLIC_SITE_URL: https://example.com
         run: npm run build:static
-      # The point of the job: the export is served as a plain folder (no
-      # rewrites, no SPA fallback) and crawled, so a page that only works
-      # because of the dev server fails here instead of in production.
-      - name: Smoke-test the export
+      - name: Smoke-test (domain root)
+        env:
+          NEXT_PUBLIC_BASE_PATH: ""
+        run: npm run smoke
+      - name: Build (project site sub-path)
+        run: npm run build:static
+      - name: Smoke-test (project site sub-path)
         run: npm run smoke
 
   build:
@@ -62,11 +75,6 @@ jobs:
           cache: npm
       - run: npm ci
       - name: Build static export
-        env:
-          # Project sites live at /<repo>/ — a user/organisation site needs these
-          # two values cleared instead.
-          NEXT_PUBLIC_BASE_PATH: /${{ github.event.repository.name }}
-          NEXT_PUBLIC_SITE_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}
         run: npm run build:static
       # Pages needs a .nojekyll marker, or files/directories starting with an
       # underscore (`_next/`) are dropped from the published output.

@@ -15,6 +15,8 @@
  * host.
  */
 import { spawn } from "node:child_process";
+import { writeFileSync } from "node:fs";
+import path from "node:path";
 
 const origin = process.env.NEXT_PUBLIC_SITE_URL || process.env.SITE_URL || "";
 const basePath = process.env.NEXT_PUBLIC_BASE_PATH || "";
@@ -49,4 +51,17 @@ function run(command, args) {
 
 const images = await run(process.execPath, ["scripts/build-images.mjs"]);
 if (images !== 0) process.exit(images);
-process.exit(await run(process.platform === "win32" ? "next.cmd" : "next", ["build"]));
+
+const build = await run(process.platform === "win32" ? "next.cmd" : "next", ["build"]);
+
+// How this folder was built, in the folder itself. `preview` mounts the export
+// at the right sub-path and `smoke` checks the right URLs without being told —
+// testing a prefixed build against an unprefixed server is a mistake that looks
+// exactly like a broken site, so the deployment shape travels with the bytes.
+if (build === 0) {
+  writeFileSync(
+    path.join(process.cwd(), "out", "build-meta.json"),
+    `${JSON.stringify({ basePath: basePath.replace(/\/+$/, ""), siteUrl: env.SITE_URL, builtAt: new Date().toISOString() }, null, 2)}\n`
+  );
+}
+process.exit(build);
