@@ -49,6 +49,27 @@ jobs:
         run: npm run typecheck
       - name: Lint
         run: npm run lint
+      # `next dev --webpack` is the daily command and it exercises a webpack
+      # loader path the production builds never touch — a config that builds
+      # fine can still 500 in dev (see the `pageExtensions` note in
+      # next.config.ts). Boot it, require a 200 on `/`, then shut it down.
+      - name: Dev server serves the app (webpack)
+        run: |
+          npm run dev -- --port 3100 > /tmp/dev.log 2>&1 &
+          status=000
+          for _ in $(seq 1 90); do
+            status=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3100/ || true)
+            if [ "$status" = "200" ]; then break; fi
+            sleep 1
+          done
+          pkill -f '[n]ext dev' || true
+          pkill -f '[n]ext-server' || true
+          if [ "$status" != "200" ]; then
+            echo "dev server returned $status for /"
+            tail -40 /tmp/dev.log
+            exit 1
+          fi
+          echo "dev server ok"
       - name: Build (domain root)
         env:
           NEXT_PUBLIC_BASE_PATH: ""

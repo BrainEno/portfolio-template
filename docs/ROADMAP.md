@@ -36,9 +36,32 @@
 | 项 | 问题 | 处理 |
 |---|---|---|
 | `.github/workflows/nextjs.yml` | 与 `static.yml` 同时发布会抢同一个 `github-pages` 环境；它没跑过子路径构建，线上 `<img src>` 是 `/images/…`（无前缀）且 sitemap 缺尾斜杠——**它抢赢了**，所以线上作品页图片 404 | 删除，只留 `static.yml` |
-| `next.config.ts` `pageExtensions` | 从 `["tsx"]` 放宽到四合一，路由守卫失效（`.js`/`.jsx` 也能当页面） | 改回 `["tsx"]` |
+| `next.config.ts` `pageExtensions` | 从 `["tsx"]` 放宽到四合一，`.js`/`.jsx` 也能当页面 | 收回到 `["tsx", "ts"]`（为什么不能只有一项见下） |
 | `package-lock.json` | 25 处 `"dev": true` 被删（npm 版本抖动，与依赖无关） | 从 `main` 还原 |
 | `eslint.config.mjs` | 多了一条 `.open-next/**`（Netlify 遗留） | 删除 |
+
+### `npm run dev` 报 `Can't resolve private-next-app-dir/page`（真因已定位）
+
+这个报错就是那次提交想解决的「dev server build error」，但当时的改法（把 `pageExtensions`
+放宽到四项）只是**碰巧**绕过去了。真正的因果链：
+
+1. `next dev --webpack` 下，`getAppEntry` 用 `querystring.stringify` 把 loader options 拼进
+   loader 请求串；**单元素数组**只能编码成 `pageExtensions=tsx`，webpack 侧解析回来是**字符串**
+   而不是数组（两项以上才是 `pageExtensions=tsx&pageExtensions=ts`）。
+2. `next-app-loader` 里那一支写的是 `typeof pageExtensions === "string" ? [pageExtensions] :
+   pageExtensions.map(e => "." + e)`——字符串分支**忘了补前导点**，于是它去找 `pagetsx`
+   这个文件，找不到，最终抛 `Can't resolve private-next-app-dir/page`。
+3. 结果：`pageExtensions: ["tsx"]` 会让 dev（webpack）**每一页都 500**，而生产构建
+   （Turbopack）完全正常，CI 全绿——这也是它一直没被发现的原因。`["tsx","tsx"]` 这种重复项
+   同样能跑，印证了「长度 1」才是触发条件（Next 16.2.6）。
+
+修法：写成 `["tsx", "ts"]`。既保留「只有 `.tsx` 页面 + `.ts` 路由处理函数进路由」的守卫，
+又保证列表不是单元素。`.ts` 也是 Next 里 `route.ts` / `middleware.ts` 的标准扩展名，
+比只有 `.tsx` 更正确。
+
+为了让它不能再悄悄坏掉：`verify` 里加了一步「启动 `npm run dev`，要求 `/` 返回 200，
+然后关掉」。已验证：`["tsx"]` 时这步失败（500），`["tsx","ts"]` 时通过。
+生产构建也补测了 `next build --webpack`（同样走这条 loader 路径），正常。
 
 ### 顺手补的两件小事
 
