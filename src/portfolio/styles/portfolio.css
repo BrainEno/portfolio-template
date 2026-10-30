@@ -1034,32 +1034,41 @@ body {
   flex-direction: column;
   min-height: 100vh;
   min-height: 100svh;
-  padding: 9svh 4.5vw 4svh;
+  /* Symmetric outer gutter: the headline starts exactly as far from the left
+     edge as the booth's silhouette ends from the right one. */
+  padding: 9svh 5vw 4svh;
 }
 
 .contact-headlines {
   position: relative;
   /* Copy owns the left column so the booth gets a clean right column; the
-     two never overlap on the sheet. The width and the type size are paired:
-     "MARQUEE MOON" measures ~10.3× the font size, so 70vw of room allows up
-     to 6.6vw type without a line ever wrapping mid-scrub (a rewrap would make
-     the whole block jump while the text is rising). */
+     two never overlap on the sheet. Width and type size are paired: with the
+     display tracking, "MARQUEE MOON" measures ~8.26× the font size, so 74vw of
+     room allows up to 7vw type without a line ever wrapping mid-scrub (a
+     rewrap would make the whole block jump while the text is rising).
+     `margin-top: auto` drops the block to sit on the marquee, so the booth and
+     the headline share one baseline instead of leaving the lower half empty. */
   z-index: 2;
-  max-width: 70vw;
+  max-width: 74vw;
+  margin-top: auto;
+  margin-bottom: 2.6vw;
 }
 
 .contact-line {
   overflow: hidden;
-  font-size: clamp(32px, 6.2vw, 118px);
+  /* Display caps are set tight: negative tracking and a compressed leading are
+     what make three stacked lines read as one block instead of three rows. */
+  font-size: clamp(36px, 7.2vw, 148px);
   font-weight: 500;
-  line-height: 0.94;
+  line-height: 0.86;
+  letter-spacing: -0.022em;
   text-transform: uppercase;
   color: transparent;
   -webkit-text-stroke: clamp(1.5px, 0.2vw, 3.5px) #000;
 }
 
 .contact-line + .contact-line {
-  margin-top: -0.04em;
+  margin-top: -0.03em;
 }
 
 .contact-line-3 {
@@ -1152,15 +1161,20 @@ body {
    the drag gesture on the canvas. */
 .contact-booth {
   position: absolute;
-  /* Above the headline hit-area so the canvas can receive drag gestures; the
-     marquee (later in DOM, z-index 3) still wins at the floor. */
-  z-index: 3;
-  /* No transform of its own: GSAP owns `transform` for the entrance, so the
-     box is centred with margins instead of translateY(-50%). */
-  top: 50%;
-  margin-top: max(-31svh, -620px);
-  right: 5vw;
-  height: min(62svh, 620px);
+  /* Above the headline hit-area so the canvas can receive drag gestures, and
+     above the marquee too: the plinth stands on the floor rule, so the strip
+     has to pass behind it instead of cropping it. */
+  z-index: 4;
+  /* Stretched between the top edge and the sheet's floor rule rather than a
+     fixed height, so the booth takes whatever vertical room the sheet actually
+     has: the crown touches the top margin, the plinth stands on the rule, and
+     the width follows from the 9:16 silhouette aspect. This is the largest the
+     booth can be before the marquee starts eating the base. It also carries no
+     transform of its own — GSAP owns `transform` for the entrance. */
+  top: 0;
+  bottom: 13.7svh;
+  right: 7.5vw;
+  height: auto;
   aspect-ratio: 9 / 16;
   will-change: transform;
 }
@@ -1242,7 +1256,10 @@ body {
   position: relative;
   z-index: 3;
   display: flex;
-  margin: auto -4.5vw 2.2vw;
+  /* The headline block owns `margin-top: auto`, so the marquee must not take
+     the free space a second time — otherwise the two auto margins split it and
+     the type ends up stranded in the middle of the sheet. */
+  margin: 0 -5vw 2.2vw;
   padding: 1vw 0;
   overflow: hidden;
   font-size: clamp(26px, 4.6vw, 92px);
@@ -1587,14 +1604,16 @@ body {
 
   .contact-headlines {
     max-width: none;
+    margin-top: 0;
   }
 
   .contact-booth {
     position: relative;
     top: auto;
+    bottom: auto;
     right: auto;
     align-self: flex-end;
-    height: 58svh;
+    height: 62svh;
     aspect-ratio: 9 / 16;
     margin: -2vh -4vw 3vh 0;
   }

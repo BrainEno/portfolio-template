@@ -395,86 +395,88 @@ function contact(scope: HTMLElement, desktop: boolean, reduce: boolean) {
     gsap.set(".contact-booth-shadow", { autoAlpha: 1 });
     gsap.set(".contact-line-text", { clearProps: "transform" });
   } else {
-    const booth = scope.querySelector<HTMLElement>(".contact-booth");
     const vw = () => window.innerWidth;
     const vh = () => window.innerHeight;
 
-    // Booth: a single parabola from the right edge. It enters below the
-    // horizon on the right, sweeps up and over the resting height, then drops
-    // into place while making one full turn — the arc (rather than a straight
-    // slide or a scale-up) is what makes it feel like it was tossed in.
-    const tl = gsap.timeline({
-      defaults: { ease: "none" },
-      scrollTrigger: {
-        trigger: "#contact",
-        start: "top 92%",
-        end: "top -8%",
-        scrub: 0.7,
-        invalidateOnRefresh: true,
-      },
-    });
-
-    tl.fromTo(
-      ".contact-booth",
-      {
-        autoAlpha: 0,
-        x: () => vw() * 0.95,
-        y: () => vh() * 0.26,
-        rotationY: -24,
-        scale: desktop ? 0.94 : 0.96,
-        transformPerspective: 1700,
-        transformOrigin: "50% 60%",
-      },
-      {
-        autoAlpha: 1,
-        x: () => vw() * 0.62,
-        y: () => vh() * 0.1,
-        rotationY: -150,
-        scale: 0.97,
-        duration: 0.24,
-        ease: "power1.out",
-      },
-      0
-    )
-      // The arc: x keeps sliding left while y settles first, so the path bends
-      // (comes in from the right and below, rises over the copy, then drops
-      // into the column) instead of running as a straight diagonal.
+    // Booth: a single arc from the right edge. It enters below the horizon,
+    // climbs past the resting height while it keeps sliding left, then falls
+    // into the column and drifts on — one full turn over the whole flight.
+    // The vertical overshoot is what makes the path read as a throw instead of
+    // a diagonal slide.
+    gsap
+      .timeline({
+        defaults: { ease: "none" },
+        scrollTrigger: {
+          trigger: "#contact",
+          start: "top 100%",
+          end: "top -4%",
+          scrub: 0.7,
+          invalidateOnRefresh: true,
+        },
+      })
+      // The flight is a quarter-arc thrown out of the bottom-right corner: it
+      // climbs almost straight up first, then sweeps left along the top of the
+      // sheet, which is what makes the path bow towards the upper left instead
+      // of cutting the diagonal. Vertical progress leads horizontal progress for
+      // the whole of the flight, so the chord is never visible.
+      .fromTo(
+        ".contact-booth",
+        {
+          autoAlpha: 0,
+          x: () => vw() * 0.92,
+          y: () => vh() * 0.46,
+          rotation: 7,
+          scale: desktop ? 0.88 : 0.9,
+          transformOrigin: "50% 60%",
+        },
+        {
+          autoAlpha: 1,
+          x: () => vw() * 0.62,
+          y: () => vh() * 0.08,
+          rotation: 4.5,
+          scale: desktop ? 0.93 : 0.94,
+          duration: 0.32,
+          ease: "power1.out",
+        },
+        0
+      )
       .to(
         ".contact-booth",
-        { x: () => vw() * 0.24, y: () => -vh() * 0.012, rotationY: -300, scale: 1, duration: 0.34, ease: "sine.out" },
-        0.24
+        { x: 0, duration: 0.5, ease: "power1.inOut" },
+        0.32
       )
-      .to(".contact-booth", { x: 0, y: 0, rotationY: -360, duration: 0.24, ease: "power1.out" }, 0.58)
-      // …then the slow leftward drift the section is asking for.
-      .to(".contact-booth", { x: () => -vw() * 0.05, duration: 0.42 }, 0.82)
+      .to(
+        ".contact-booth",
+        { y: 0, rotation: 0, scale: 1, duration: 0.5, ease: "power2.out" },
+        0.32
+      )
       .fromTo(
         ".contact-booth-shadow",
-        { autoAlpha: 0, scale: 0.4 },
-        { autoAlpha: 1, scale: 1, duration: 0.3, ease: "power2.out" },
-        0.52
+        { autoAlpha: 0, scale: 0.35 },
+        { autoAlpha: 1, scale: 1, duration: 0.34, ease: "power2.out" },
+        0.56
       );
 
-    // Copy: the three lines rise out of their masks one after another while
-    // the white frame is still arriving, so the section is never an empty
-    // white page.
+    // Copy: one solid block that slides up out of the television as the white
+    // is still blooming — no per-line wipe, no mask slicing. The block simply
+    // rises with the scroll and fades in, so the first thing you read is a
+    // finished line of type.
     gsap
       .timeline({
         scrollTrigger: {
           trigger: "#contact",
-          // Starts one line-height earlier than the TV push so the first line
-          // is already rising while the white frame is still opening up.
-          start: "top 98%",
-          end: "top 16%",
-          scrub: 0.5,
+          start: "top 106%",
+          end: "top 38%",
+          scrub: 0.55,
+          invalidateOnRefresh: true,
         },
       })
       .fromTo(
-        ".contact-line-text",
-        { yPercent: 112 },
-        { yPercent: 0, duration: 1, ease: "power2.out", stagger: 0.18 },
+        ".contact-headlines",
+        { y: () => vh() * 0.34, autoAlpha: 0.12 },
+        { y: 0, autoAlpha: 1, duration: 1, ease: "power1.out" },
         0
-      )
-      .fromTo(".contact-headlines", { autoAlpha: 0.001 }, { autoAlpha: 1, duration: 0.28 }, 0);
+      );
   }
 
   gsap.from(".contact-footer > *", {
