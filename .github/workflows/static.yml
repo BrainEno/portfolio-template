@@ -1,11 +1,20 @@
 name: Static site
 
-# Builds the static export (`npm run build:static` → out/) and publishes it to
-# GitHub Pages. Nothing here talks to a database: the build reads
-# `content/defaults.ts` or the committed `content/published.json` snapshot.
+# Two jobs, one rule: nothing gets published that has not been served and
+# crawled locally first.
+#
+#  verify — every push and every PR: typecheck, lint, static export, then
+#           `scripts/smoke.mjs` boots the export on a plain file server and
+#           checks every sitemap page, the 404s, robots.txt and every image
+#           candidate. No browser, ~2 s.
+#  build/deploy — pushes to main only, publishes the same export to Pages.
+#
+# Nothing here talks to a database: the build reads `content/defaults.ts` or the
+# committed `content/published.json` snapshot.
 on:
   push:
     branches: [main]
+  pull_request:
   workflow_dispatch:
 
 permissions:
@@ -14,11 +23,36 @@ permissions:
   id-token: write
 
 concurrency:
-  group: pages
+  group: pages-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Lint
+        run: npm run lint
+      - name: Build static export
+        env:
+          NEXT_PUBLIC_SITE_URL: https://example.com
+        run: npm run build:static
+      # The point of the job: the export is served as a plain folder (no
+      # rewrites, no SPA fallback) and crawled, so a page that only works
+      # because of the dev server fails here instead of in production.
+      - name: Smoke-test the export
+        run: npm run smoke
+
   build:
+    needs: verify
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

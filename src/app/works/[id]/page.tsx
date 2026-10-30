@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getSiteContent } from "@/portfolio/content/source";
+import { Img } from "@/portfolio/ui/Img";
 import { absoluteUrl, pickText, siteUrl } from "@/portfolio/seo/site";
 import "@/portfolio/styles/work-detail.css";
 
@@ -72,7 +73,12 @@ export default async function WorkPage({ params }: Params) {
         {images.map((image, index) => (
           <figure key={`${image.src}-${index}`} className="wd-frame">
             {/* Fixed frame + object-fit: any aspect ratio can be uploaded. */}
-            <img src={image.src} alt={pickText(image.alt, lang) || pickText(work.title, lang)} loading={index ? "lazy" : "eager"} decoding="async" />
+            <Img
+              src={image.src}
+              alt={pickText(image.alt, lang) || pickText(work.title, lang)}
+              sizes="(max-width: 767px) 92vw, (max-width: 1200px) 45vw, 540px"
+              loading={index ? "lazy" : "eager"}
+            />
           </figure>
         ))}
       </div>

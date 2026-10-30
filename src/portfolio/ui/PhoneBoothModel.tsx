@@ -100,6 +100,10 @@ export function PhoneBoothModel({ src, fallback, spin = 0.16, plateText }: Props
 
   return (
     <div ref={hostRef} className="contact-booth-canvas" aria-hidden="true">
+      {/* Kept a raw `<img>` rather than `Img`: the hand-over hides this node by
+          writing `style.opacity` straight to the DOM, so it needs the ref, and it
+          is a transparent cutout that must not be re-encoded. */}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
       <img ref={stillRef} className="contact-booth-still" src={fallback} alt="" loading="lazy" decoding="async" />
     </div>
   );

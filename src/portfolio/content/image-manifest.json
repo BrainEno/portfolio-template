@@ -1,0 +1,220 @@
+{
+  "generator": "scripts/build-images.mjs",
+  "widths": [
+    480,
+    800,
+    1200
+  ],
+  "images": {
+    "/images/accent-1.jpg": {
+      "width": 900,
+      "height": 1200,
+      "variants": [
+        {
+          "type": "image/webp",
+          "srcSet": "/images/opt/accent-1-480.28110c9d.webp 480w, /images/opt/accent-1-800.28110c9d.webp 800w"
+        }
+      ]
+    },
+    "/images/accent-2.jpg": {
+      "width": 900,
+      "height": 1200,
+      "variants": [
+        {
+          "type": "image/webp",
+          "srcSet": "/images/opt/accent-2-480.f4bdf37d.webp 480w, /images/opt/accent-2-800.f4bdf37d.webp 800w"
+        }
+      ]
+    },
+    "/images/figure.jpg": {
+      "width": 1200,
+      "height": 1600,
+      "variants": [
+        {
+          "type": "image/webp",
+          "srcSet": "/images/opt/figure-480.e679805a.webp 480w, /images/opt/figure-800.e679805a.webp 800w, /images/opt/figure-1200.e679805a.webp 1200w"
+        }
+      ]
+    },
+    "/images/profilephoto.jpg": {
+      "width": 1000,
+      "height": 1400,
+      "variants": [
+        {
+          "type": "image/webp",
+          "srcSet": "/images/opt/profilephoto-480.c0ab8e27.webp 480w, /images/opt/profilephoto-800.c0ab8e27.webp 800w, /images/opt/profilephoto-1000.c0ab8e27.webp 1000w"
+        }
+      ]
+    },
+    "/images/screenshot1.jpg": {
+      "width": 900,
+      "height": 1200,
+      "variants": [
+        {
+          "type": "image/webp",
+          "srcSet": "/images/opt/screenshot1-480.28110c9d.webp 480w, /images/opt/screenshot1-800.28110c9d.webp 800w"
+        }
+      ]
+    },
+    "/images/screenshot2.jpg": {
+      "width": 900,
+      "height": 1200,
+      "variants": [
+        {
+          "type": "image/webp",
+          "srcSet": "/images/opt/screenshot2-480.f4bdf37d.webp 480w, /images/opt/screenshot2-800.f4bdf37d.webp 800w"
+        }
+      ]
+    },
+    "/images/tree1.jpg": {
+      "width": 1200,
+      "height": 900,
+      "variants": [
+        {
+          "type": "image/webp",
+          "srcSet": "/images/opt/tree1-480.5804c7b9.webp 480w, /images/opt/tree1-800.5804c7b9.webp 800w, /images/opt/tree1-1200.5804c7b9.webp 1200w"
+        }
+      ]
+    },
+    "/images/tree2.jpg": {
+      "width": 1200,
+      "height": 900,
+      "variants": [
+        {
+          "type": "image/webp",
+          "srcSet": "/images/opt/tree2-480.e3346db2.webp 480w, /images/opt/tree2-800.e3346db2.webp 800w, /images/opt/tree2-1200.e3346db2.webp 1200w"
+        }
+      ]
+    },
+    "/images/tree3.jpg": {
+      "width": 1200,
+      "height": 900,
+      "variants": [
+        {
+          "type": "image/webp",
+          "srcSet": "/images/opt/tree3-480.81125d29.webp 480w, /images/opt/tree3-800.81125d29.webp 800w, /images/opt/tree3-1200.81125d29.webp 1200w"
+        }
+      ]
+    },
+    "/images/tree4.jpg": {
+      "width": 1200,
+      "height": 900,
+      "variants": [
+        {
+          "type": "image/webp",
+          "srcSet": "/images/opt/tree4-480.be7565a3.webp 480w, /images/opt/tree4-800.be7565a3.webp 800w, /images/opt/tree4-1200.be7565a3.webp 1200w"
+        }
+      ]
+    },
+    "/images/tree5.jpg": {
+      "width": 1200,
+      "height": 900,
+      "variants": [
+        {
+          "type": "image/webp",
+          "srcSet": "/images/opt/tree5-480.b113a829.webp 480w, /images/opt/tree5-800.b113a829.webp 800w, /images/opt/tree5-1200.b113a829.webp 1200w"
+        }
+      ]
+    },
+    "/images/work1.jpg": {
+      "width": 1200,
+      "height": 900,
+      "variants": [
+        {
+          "type": "image/webp",
+          "srcSet": "/images/opt/work1-480.5804c7b9.webp 480w, /images/opt/work1-800.5804c7b9.webp 800w, /images/opt/work1-1200.5804c7b9.webp 1200w"
+        }
+      ]
+    },
+    "/images/work2.jpg": {
+      "width": 1200,
+      "height": 900,
+      "variants": [
+        {
+          "type": "image/webp",
+          "srcSet": "/images/opt/work2-480.e3346db2.webp 480w, /images/opt/work2-800.e3346db2.webp 800w, /images/opt/work2-1200.e3346db2.webp 1200w"
+        }
+      ]
+    },
+    "/images/work3.jpg": {
+      "width": 1200,
+      "height": 900,
+      "variants": [
+        {
+          "type": "image/webp",
+          "srcSet": "/images/opt/work3-480.81125d29.webp 480w, /images/opt/work3-800.81125d29.webp 800w, /images/opt/work3-1200.81125d29.webp 1200w"
+        }
+      ]
+    },
+    "/images/work4.jpg": {
+      "width": 1200,
+      "height": 900,
+      "variants": [
+        {
+          "type": "image/webp",
+          "srcSet": "/images/opt/work4-480.be7565a3.webp 480w, /images/opt/work4-800.be7565a3.webp 800w, /images/opt/work4-1200.be7565a3.webp 1200w"
+        }
+      ]
+    },
+    "/images/work5.jpg": {
+      "width": 1200,
+      "height": 900,
+      "variants": [
+        {
+          "type": "image/webp",
+          "srcSet": "/images/opt/work5-480.b113a829.webp 480w, /images/opt/work5-800.b113a829.webp 800w, /images/opt/work5-1200.b113a829.webp 1200w"
+        }
+      ]
+    },
+    "/images/works/lyric-forge-ktv.jpg": {
+      "width": 1600,
+      "height": 1000,
+      "variants": [
+        {
+          "type": "image/webp",
+          "srcSet": "/images/opt/works-lyric-forge-ktv-480.3f92fd11.webp 480w, /images/opt/works-lyric-forge-ktv-800.3f92fd11.webp 800w, /images/opt/works-lyric-forge-ktv-1200.3f92fd11.webp 1200w, /images/opt/works-lyric-forge-ktv-1600.3f92fd11.webp 1600w"
+        }
+      ]
+    },
+    "/images/works/no-wave.jpg": {
+      "width": 1600,
+      "height": 1000,
+      "variants": [
+        {
+          "type": "image/webp",
+          "srcSet": "/images/opt/works-no-wave-480.c40b4714.webp 480w, /images/opt/works-no-wave-800.c40b4714.webp 800w, /images/opt/works-no-wave-1200.c40b4714.webp 1200w, /images/opt/works-no-wave-1600.c40b4714.webp 1600w"
+        }
+      ]
+    },
+    "/images/works/remix-partfolio.jpg": {
+      "width": 1600,
+      "height": 1000,
+      "variants": [
+        {
+          "type": "image/webp",
+          "srcSet": "/images/opt/works-remix-partfolio-480.4f29676d.webp 480w, /images/opt/works-remix-partfolio-800.4f29676d.webp 800w, /images/opt/works-remix-partfolio-1200.4f29676d.webp 1200w, /images/opt/works-remix-partfolio-1600.4f29676d.webp 1600w"
+        }
+      ]
+    },
+    "/images/works/scribeforge.jpg": {
+      "width": 1600,
+      "height": 1000,
+      "variants": [
+        {
+          "type": "image/webp",
+          "srcSet": "/images/opt/works-scribeforge-480.36c3d826.webp 480w, /images/opt/works-scribeforge-800.36c3d826.webp 800w, /images/opt/works-scribeforge-1200.36c3d826.webp 1200w, /images/opt/works-scribeforge-1600.36c3d826.webp 1600w"
+        }
+      ]
+    },
+    "/images/works/win7-book-management.jpg": {
+      "width": 1600,
+      "height": 1000,
+      "variants": [
+        {
+          "type": "image/webp",
+          "srcSet": "/images/opt/works-win7-book-management-480.cbebbd98.webp 480w, /images/opt/works-win7-book-management-800.cbebbd98.webp 800w, /images/opt/works-win7-book-management-1200.cbebbd98.webp 1200w, /images/opt/works-win7-book-management-1600.cbebbd98.webp 1600w"
+        }
+      ]
+    }
+  }
+}

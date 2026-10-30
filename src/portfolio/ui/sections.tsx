@@ -2,6 +2,7 @@
 
 import { memo, useLayoutEffect, useRef, type CSSProperties } from "react";
 import TvShowreel from "./TvShowreel";
+import { Img } from "./Img";
 import { t } from "../content/normalize";
 import type { Language, PortfolioContent } from "../content/types";
 import { cx } from "./cx";
@@ -27,19 +28,30 @@ export const Hero = memo(function Hero({ lang, content, name }: SectionProps<"he
         ))}
         {[1, 2].map((bar) => (
           <div key={bar} className={`hero-bar hero-bar-${bar}`} aria-hidden="true">
-            <img className="hero-bar-image" src={content.image.src} alt="" draggable={false} decoding="async" />
+            {/* A 6vw strip. `lazy` keeps Next from emitting a second
+                `<link rel=preload>` for the same picture at a different width —
+                the hero photo below is the one worth a round trip. */}
+            <Img
+              className="hero-bar-image"
+              src={content.image.src}
+              alt=""
+              sizes="6vw"
+              loading="lazy"
+              draggable={false}
+              hidden
+            />
           </div>
         ))}
         <div className="hero-photo-box">
           <div className="hero-photo-reveal">
             <div className="hero-photo-zoom">
-              <img
+              <Img
                 className="hero-photo"
                 src={content.image.src}
                 alt={t(content.image.alt, lang)}
+                sizes="(max-width: 767px) 56vw, 45vw"
+                priority
                 draggable={false}
-                fetchPriority="high"
-                decoding="async"
               />
             </div>
           </div>
@@ -60,15 +72,15 @@ export const Journey = memo(function Journey({ lang, content }: SectionProps<"in
           </div>
           <div className="story-photo-box">
             <div className="story-photo-ghost" aria-hidden="true">
-              <img src={content.portrait.src} alt="" loading="lazy" decoding="async" />
+              <Img src={content.portrait.src} alt="" sizes="(max-width: 767px) 40vw, 20vw" loading="lazy" hidden />
             </div>
             <div className="story-photo-mask">
-              <img
+              <Img
                 className="story-photo"
                 src={content.portrait.src}
                 alt={t(content.portrait.alt, lang)}
+                sizes="(max-width: 767px) 40vw, 20vw"
                 loading="lazy"
-                decoding="async"
               />
             </div>
             {t(content.portraitCredit, lang) ? (
@@ -88,7 +100,13 @@ export const Journey = memo(function Journey({ lang, content }: SectionProps<"in
         <div className="rail">
           {content.gallery.map((image, index) => (
             <figure key={`${image.src}-${index}`} className="rail-item">
-              <img className="rail-image" src={image.src} alt={t(image.alt, lang)} loading="lazy" decoding="async" />
+              <Img
+                className="rail-image"
+                src={image.src}
+                alt={t(image.alt, lang)}
+                sizes="(max-width: 767px) 72vw, 40vw"
+                loading="lazy"
+              />
             </figure>
           ))}
         </div>
@@ -96,13 +114,13 @@ export const Journey = memo(function Journey({ lang, content }: SectionProps<"in
 
       <div className="coda">
         {content.accentImages.map((image, index) => (
-          <img
+          <Img
             key={`${image.src}-${index}`}
             className={`coda-pic coda-pic-${index + 1}`}
             src={image.src}
             alt={t(image.alt, lang)}
+            sizes="(max-width: 767px) 30vw, 19vw"
             loading="lazy"
-            decoding="async"
           />
         ))}
         <p className={cx("copy coda-text", zh && "is-zh")}>{t(content.secondaryText, lang)}</p>
@@ -147,7 +165,18 @@ export function Works({ lang, content, phone, activeIndex, onPreview }: WorksPro
               <div className="tv-scanlines" aria-hidden="true" />
               <div className="tv-glass" aria-hidden="true" />
             </div>
-            <img className="tv-frame" src={src} alt="" aria-hidden="true" draggable={false} width={width} height={height} decoding="async" />
+            {/* Below the fold: no `<link rel=preload>` for artwork nobody has
+                scrolled to yet. */}
+            <Img
+              className="tv-frame"
+              src={src}
+              alt=""
+              hidden
+              loading="lazy"
+              draggable={false}
+              width={width}
+              height={height}
+            />
             <div className="tv-number-layer" aria-hidden="true">
               <div className="tv-number">{phone}</div>
             </div>
@@ -330,7 +359,14 @@ export const Contact = memo(function Contact({ lang, content }: SectionProps<"co
           <ContactBooth fallback={content.image.src} plateText={content.email} />
         </div>
 
-        <a href={mailto} className="contact-marquee" aria-label={content.email} data-cursor="link">
+        {/* The strip is decorative repetition, so it is hidden from the
+            accessibility tree and the link borrows its name from the email it
+            actually dials. (An `aria-label` pointing at the email while the
+            visible text says "CALL ME FOR THE MARQUEE MOON" trips
+            `label-content-name-mismatch`: a visible label and a spoken label
+            that disagree are worse than either.) */}
+        <a href={mailto} className="contact-marquee" data-cursor="link">
+          <span className="sr-only">{content.email}</span>
           {[0, 1].map((track) => (
             <span key={track} className="marquee-track" aria-hidden="true">
               {MARQUEE_REPEAT.map((i) => (

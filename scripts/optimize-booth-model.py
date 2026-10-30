@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Rebuild ``public/gltfs/telephone.glb`` from ``public/gltfs/telephone.gltf``.
+"""Rebuild ``public/gltfs/telephone.glb`` from ``assets/models/telephone.gltf``.
 
 The uploaded model is a 38 MB glTF with the binary buffer embedded as one
 base64 data URI (which makes the browser parse ~52 MB of text) and nine
@@ -18,8 +18,10 @@ Usage (needs ImageMagick's ``convert`` on PATH):
 
     python3 scripts/optimize-booth-model.py
 
-The original ``telephone.gltf`` is kept as the source of truth; only re-run
-this script when the model changes.
+The original ``telephone.gltf`` is kept as the source of truth — but outside
+``public/``: only the ``.glb`` is ever fetched, and anything under ``public/``
+is copied verbatim into the static export, so parking a 38 MB source file there
+made every deploy 43 MB instead of 5 MB.
 """
 
 from __future__ import annotations
@@ -32,7 +34,7 @@ import subprocess
 import tempfile
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-SRC = os.path.join(ROOT, "public", "gltfs", "telephone.gltf")
+SRC = os.path.join(ROOT, "assets", "models", "telephone.gltf")
 OUT = os.path.join(ROOT, "public", "gltfs", "telephone.glb")
 
 # (extension, size, jpeg quality) per texture slot.

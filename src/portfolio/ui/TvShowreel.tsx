@@ -3,6 +3,7 @@
 import { gsap } from "gsap";
 import { useEffect, useRef, useState } from "react";
 import type { LocalizedText } from "../content/types";
+import { srcSetFor } from "./Img";
 
 export type TvWork = { id: string; src: string; alt: LocalizedText };
 
@@ -169,10 +170,19 @@ export default function TvShowreel({ active, label }: Props) {
 
   return (
     <>
+      {/* The tube is ~21vw wide when it rests, but the works choreography
+          zooms it to the full viewport, so the candidate ladder is chosen for
+          the zoomed size — a screen that pixelates mid-transition would be a
+          far worse trade than the extra ~20 KB. */}
+      {/* eslint-disable-next-line @next/next/no-img-element -- GSAP drives this
+          node directly (the channel change animates the element itself), so it
+          needs the ref; the responsive candidates are attached above. */}
       <img
         ref={coverRef}
         className="tv-cover"
         src={shown?.src || undefined}
+        srcSet={shown ? srcSetFor(shown.src) : undefined}
+        sizes={shown?.src ? "(max-width: 767px) 80vw, 55vw" : undefined}
         alt={shown ? label(shown.alt) : ""}
         decoding="async"
         draggable={false}

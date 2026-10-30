@@ -58,6 +58,15 @@ Windows 没有 bash 也没关系：上面三行命令在 PowerShell / CMD 里同
 图片可以放 `public/images/` 里用 `/images/xxx.jpg` 引用，也可以直接写外链 `https://…`。
 想控制裁切重点，选主体居中的图即可。
 
+放进去之后跑一次：
+
+```bash
+npm run images      # 生成 480/800/1200 三档 WebP + 清单（build:static 前也会自动跑）
+```
+
+不跑也能显示，只是访客下载的是原图。手机上的差别很大：一张 1200×1600 的 JPG 首屏
+实际只要 8 KB 左右就够了，原图是 53 KB，作品图更明显。
+
 ### 预览改动
 
 `npm run dev` 会热更新，边改 JSON/TS 边看效果。要看成品的真实形态：
@@ -67,8 +76,12 @@ npm run build:static
 npm run preview            # http://localhost:3300
 ```
 
-`out/` 里就是上线用的那堆文件。`npm run preview` 是一个普通的静态服务器：和 GitHub Pages / Netlify 上的行为一致，
-如果某个页面在这里打不开，说明它在线上也打不开。
+`out/` 里就是上线用的那堆文件（≈6 MB）。`npm run preview` 是一个普通的静态服务器：和 GitHub Pages / Netlify 上的行为一致，
+如果某个页面在这里打不开，说明它在线上也打不开。想让它替你把每个页面都点一遍：
+
+```bash
+npm run smoke      # 逐页断言状态码、404、robots、图片是否都在，≈2 秒
+```
 
 ## 4. 部署
 
