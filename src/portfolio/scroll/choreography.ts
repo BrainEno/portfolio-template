@@ -1,3 +1,12 @@
+/**
+ * Copyright © 2026 BrainEno. 保留所有权利。
+ *
+ * 本文件及其包含的代码、设计和逻辑均为 BrainEno 的原创作品。
+ * 未经作者明确书面授权，禁止复制、修改、分发或用于其他项目。
+ *
+ * 授权申请：nodeman24@outlook.com
+ * 详见：LICENSE, TERMS.md
+ */
 import { gsap } from "gsap";
 import { ScrollSmoother } from "gsap/ScrollSmoother";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
