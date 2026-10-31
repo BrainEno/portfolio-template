@@ -63,7 +63,9 @@ function walk(dir) {
   if (!existsSync(dir)) return [];
   return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
     const full = path.join(dir, entry.name);
-    if (entry.isDirectory()) return entry.name === "opt" ? [] : walk(full);
+    // `opt` is our own output; `tv-tube` holds the television's derived
+    // layers (masks, bezel cut-out) whose bytes must not be re-encoded.
+    if (entry.isDirectory()) return entry.name === "opt" || entry.name === "tv-tube" ? [] : walk(full);
     // `.webp` sources are included because the television artwork ships as one
     // (a project usually replaces it with a photo); JPEG/PNG originals keep
     // working as the `src` fallback.

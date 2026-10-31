@@ -713,41 +713,72 @@ body {
   will-change: transform;
 }
 
+/* The tube. Four coordinate systems, kept apart on purpose:
+     --screen-*        the glass OPENING. The choreography frames it (zoom centre,
+                       anchor offset); never swap it for the padded box.
+     --tube-box-*      opening + 24 px padding (tv-tube.json → box). Everything
+                       that belongs to the tube — mask, picture, bezel cut-out,
+                       light — is laid out in this rectangle.
+     --aperture-*      the picture's bounding box, as % of the box. Raster
+                       children (snow, roll, sync line, play button, showreel)
+                       are positioned against it, so "50 %" still means the middle
+                       of the glass and not the middle of the padding.
+     --tube-mask etc.  derived images injected by sections.tsx.
+   Tuning knobs (all optional, set on .tv-anchor or any ancestor):
+     --tv-tint (0.2) · --tv-reflect (0.8) · --tv-black (rgb(8 12 10)) · --tv-spill (1) */
+.tv-anchor {
+  --tv-tint: 0.2;
+  --tv-reflect: 0.8;
+  --tv-black: rgb(8, 12, 10);
+  --tv-spill: 1;
+}
+
+.tv-number-layer,
+.tv-bezel,
+.tv-spill {
+  position: absolute;
+  top: var(--tube-box-top);
+  left: var(--tube-box-left);
+  width: var(--tube-box-width);
+  height: var(--tube-box-height);
+}
+
 .tv-screen,
 .tv-number-layer {
-  position: absolute;
-  top: var(--screen-top);
-  left: var(--screen-left);
-  width: var(--screen-width);
-  height: var(--screen-height);
-  overflow: hidden;
-  border-radius: 9% 7% 8% 10% / 9% 8% 9% 10%;
+  /* The shape comes from the mask (the measured opening, grown by a few px
+     that the bezel hides). The radius is only a fallback for the no-mask case. */
+  -webkit-mask-image: var(--tube-mask, none);
+  mask-image: var(--tube-mask, none);
+  -webkit-mask-size: 100% 100%;
+  mask-size: 100% 100%;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  border-radius: 1%;
 }
 
 .tv-screen {
-  /* Above `.tv-frame` on purpose. The artwork used to sit on top with a
-     `darken` blend so its (near-white) vector glass let the picture through —
-     a photo's glass is much darker, and `darken` would cap every still at its
-     ~96/255 luminance, i.e. a murky tube. Layering the screen above the
-     artwork means the picture renders at its own brightness and the photo only
-     supplies the cabinet; the glass rectangle (`.works.tv.screen`) is the
-     visible boundary, which is why it is measured rather than guessed. */
+  /* Above `.tv-frame` on purpose: the picture renders at its own brightness
+     and the photo only supplies the cabinet. The photo's own lit glass (orange
+     raster, green sides) must never show through: `.tv-screen-base` is opaque. */
   z-index: 2;
   background: #020202;
   transform: translateZ(0);
-  /* `clip` (unlike `hidden`) does not force a scroll container, so the
-     screen crop still travels with the zoomed `.tv-box` instead of being
-     pinned to the viewport-sized stage. */
+  /* `clip` (unlike `hidden`) does not force a scroll container, so the crop
+     still travels with the zoomed `.tv-box`. */
   overflow: hidden;
   overflow: clip;
-  /* SVG clip-path traces the exact inner bezel edge with bezier curves
-     (like Photoshop's pen tool path masking). This replaces the crude
-     border-radius approximation so the content seamlessly fits the TV frame.
-     Border-radius kept as fallback for browsers without clip-path support. */
-  clip-path: url(#tv-screen-clip);
-  /* Subtle inner shadow blends the content edge with the bezel, hiding any
-     remaining anti-aliasing artifacts and preventing the "pasted-on" look. */
-  box-shadow: inset 0 0 2.5vmin rgba(0, 0, 0, 0.35);
+  /* Multiplies tint / shade / black / reflect; the exit tweens it to 0. */
+  --glass-k: 1;
+}
+
+/* The picture's rectangle inside the padded box. */
+.tv-raster {
+  position: absolute;
+  z-index: 1;
+  top: var(--aperture-top);
+  left: var(--aperture-left);
+  width: var(--aperture-width);
+  height: var(--aperture-height);
 }
 
 .tv-screen-base,
@@ -775,32 +806,6 @@ body {
   opacity: 1;
 }
 
-.tv-showreel::before,
-.tv-showreel::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: 1;
-  pointer-events: none;
-}
-
-.tv-showreel::before {
-  background: repeating-linear-gradient(to bottom, rgba(0, 0, 0, 0.24) 0, rgba(0, 0, 0, 0.24) 1px, transparent 1px, transparent 3px);
-  opacity: 0.6;
-}
-
-.tv-showreel::after {
-  z-index: 2;
-  background:
-    radial-gradient(ellipse at 16% 9%, rgba(255, 244, 218, 0.22), transparent 30%),
-    linear-gradient(103deg, transparent 58%, rgba(202, 255, 229, 0.14) 79%, transparent 88%),
-    linear-gradient(180deg, rgba(120, 160, 130, 0.1), rgba(40, 60, 50, 0.16)),
-    radial-gradient(ellipse at 50% 46%, transparent 46%, rgba(0, 0, 0, 0.18) 78%, rgba(0, 0, 0, 0.52) 112%),
-    /* Stronger edge darkening to blend with the bezel and hide clip-path seams. */
-    radial-gradient(ellipse at 50% 50%, transparent 50%, rgba(0, 0, 0, 0.15) 75%, rgba(0, 0, 0, 0.38) 100%);
-  box-shadow: inset 0 0 4.5vmin rgba(0, 0, 0, 0.55);
-}
-
 /* The project still sits *behind* curved glass: a dense, photographic
    image (no screen-blend lift) with the tube's scanlines, phosphor tint
    and edge falloff laid over it. */
@@ -815,6 +820,8 @@ body {
   /* The channel change is choreographed in `ui/TvShowreel.tsx` (collapse →
      snow → re-lock); no CSS animation may touch transform/filter here, or the
      two would fight over the same properties. */
+  /* Fills the aperture (`.tv-raster`); a work can re-frame itself with --tv-object-position. */
+  object-position: var(--tv-object-position, 50% 50%);
 }
 
 /* Video variant of the cover: identical box model to `.tv-cover` so the CRT
@@ -917,21 +924,126 @@ body {
   );
 }
 
-/* Persistent glass: sheen + edge falloff that never fade with the showreel,
-   so the powered-down tube keeps its material through the phone beat instead
-   of turning into a black hole. */
-.tv-glass {
+/* Light. The output is  picture × tint × shade + black + reflect  (+ spill, outside).
+   Each layer is a derived image from scripts/tv-tube.mjs and none of them fades with
+   the showreel, so a powered-down tube keeps its glass instead of becoming a black hole.
+   They are direct children of `.tv-screen` (no wrapper with opacity), so multiply /
+   screen blend against the picture and not against a transparent group. */
+.tv-tint,
+.tv-shade,
+.tv-black,
+.tv-reflect {
   position: absolute;
   inset: 0;
-  z-index: 4;
+  z-index: 3;
   pointer-events: none;
-  background:
-    radial-gradient(ellipse at 50% 0%, rgba(255, 252, 240, 0.1), transparent 42%),
-    linear-gradient(103deg, transparent 60%, rgba(202, 255, 229, 0.08) 80%, transparent 90%),
-    radial-gradient(ellipse at 50% 46%, transparent 52%, rgba(0, 0, 0, 0.22) 82%, rgba(0, 0, 0, 0.5) 115%),
-    /* Enhanced edge falloff: stronger darkening near the bezel to blend the
-       content seamlessly and hide any clip-path artifacts. */
-    radial-gradient(ellipse at 50% 50%, transparent 55%, rgba(0, 0, 0, 0.18) 78%, rgba(0, 0, 0, 0.42) 100%);
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+}
+
+/* The glass colour (warm left, green right) laid lightly over the picture:
+   hue only, from a σ≈25 px blur of the photo's chroma. */
+.tv-tint {
+  z-index: 4;
+  background-image: var(--tube-tint, none);
+  mix-blend-mode: multiply;
+  opacity: calc(var(--tv-tint) * var(--glass-k));
+}
+
+/* Procedural thickness of the glass: darker towards the edge, corners and under the top lip. */
+.tv-shade {
+  z-index: 5;
+  background-image: var(--tube-shade, none);
+  mix-blend-mode: multiply;
+  opacity: var(--glass-k);
+}
+
+/* A black picture is still glass: a faint lift. */
+.tv-black {
+  z-index: 6;
+  background: var(--tv-black);
+  mix-blend-mode: screen;
+  opacity: var(--glass-k);
+}
+
+/* The only real reflections of the photo (street lamp, diagonal bar, green bar,
+   left line). Above snow and roll on purpose: the room does not change channel. */
+.tv-reflect {
+  z-index: 7;
+  background-image: var(--tube-reflect, none);
+  mix-blend-mode: screen;
+  opacity: calc(var(--tv-reflect) * var(--glass-k));
+}
+
+/* The photo's own pixels around the opening, over the picture. The picture runs a
+   few px under it, so no seam can open, and the visible edge is the photo's own. */
+.tv-bezel {
+  z-index: 3;
+  display: block;
+  max-width: none;
+  pointer-events: none;
+  user-select: none;
+}
+
+/* The picture's light on the dark seam and the inner lip (≤ 25 %), plus a 3 %
+   halation inside the glass. A 24×16 canvas scaled up = a very wide, free blur. */
+.tv-spill {
+  z-index: 5;
+  pointer-events: none;
+  -webkit-mask-image: var(--tube-ring, none);
+  mask-image: var(--tube-ring, none);
+  -webkit-mask-size: 100% 100%;
+  mask-size: 100% 100%;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  mix-blend-mode: screen;
+  opacity: var(--tv-spill);
+}
+
+.tv-box.no-tube .tv-spill {
+  display: none;
+}
+
+/* ?tvdebug=1 (development builds) --------------------------------------- */
+.tv-debug-outlines {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+.tv-box[data-tv-off~="screen"] .tv-screen,
+.tv-box[data-tv-off~="tint"] .tv-tint,
+.tv-box[data-tv-off~="shade"] .tv-shade,
+.tv-box[data-tv-off~="reflect"] .tv-reflect,
+.tv-box[data-tv-off~="black"] .tv-black,
+.tv-box[data-tv-off~="spill"] .tv-spill,
+.tv-box[data-tv-off~="bezel"] .tv-bezel {
+  display: none;
+}
+.tv-box[data-tv-off~="picture"] .tv-showreel {
+  visibility: hidden;
+}
+.tv-debug-panel {
+  position: fixed;
+  top: 8px;
+  left: 8px;
+  z-index: 99999;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  max-width: 340px;
+  padding: 8px 10px;
+  font: 11px/1.4 ui-monospace, monospace;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.78);
+  border-radius: 6px;
+}
+.tv-debug-panel button {
+  padding: 0 6px;
+  border: 1px solid #888;
+  border-radius: 3px;
 }
 
 .tv-frame {
@@ -949,8 +1061,18 @@ body {
 
 .tv-number-layer {
   z-index: 3;
-  container-type: inline-size;
   pointer-events: none;
+}
+
+/* The wordmark is centred in the glass (the aperture), not in the padded box,
+   and its `cqi` size is measured against the glass width as before. */
+.tv-number-frame {
+  position: absolute;
+  top: var(--aperture-top);
+  left: var(--aperture-left);
+  width: var(--aperture-width);
+  height: var(--aperture-height);
+  container-type: inline-size;
 }
 
 .tv-number {

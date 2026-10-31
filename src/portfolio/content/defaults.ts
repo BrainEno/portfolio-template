@@ -83,18 +83,51 @@ export const defaultContent: PortfolioContent = {
       src: "/images/tv.webp",
       width: 2560,
       height: 1707,
-      // Glass bounds of `tv.webp` (2560x1707), measured from the photo's
-      // gradients: the lit tube runs x 1124-1440 / y 986-1248. The rect is
-      // grown ~12px on every side so it can never be *smaller* than the glass —
-      // a sliver of the photo's own screen beside the picture is the one thing
-      // that reads as broken during the zoom. The bleed lands on the dark
-      // inner bezel, so it costs nothing visibly and absorbs the tube's curved
-      // corners, which a rectangle cannot follow.
-      //
-      // The CRT picture is layered *above* the artwork (see .tv-screen in
-      // portfolio.css), which is what lets it render at full brightness; this
-      // rect is therefore the visible boundary and needs to be right.
-      screen: { top: 57.18, left: 43.45, width: 12.9688, height: 15.8781 },
+      // The seed rectangle is the *glass opening* of `tv.webp` (2560x1707),
+      // measured by scanning outward from the tube's centre until the picture
+      // drops into the dark seam that separates glass from chrome:
+      //   x 1100-1432 / y 985-1248  (332 x 263 px).
+      // `--screen-*` (and the zoom centre derived from it) mean exactly that —
+      // the choreography frames the glass, so it must not be padded or "grown".
+      // It is only a *seed* for the tube step and the CSS fallback; the shape
+      // that is actually drawn is traced by `npm run tv-tube`.
+      screen: { top: 57.7, left: 42.97, width: 12.97, height: 15.41 },
+      // Settings of `scripts/tv-tube.mjs` (it reads this block, nothing else).
+      // What the script really does:
+      //   1. casts `rays` rays from the glass centre and stops each one at the
+      //      first place the luma stays <= `gap` for `run` px (the dark seam) —
+      //      it never walks on to look for chrome;
+      //   2. fits each of the four edges with a quadratic (keeps the left
+      //      edge's outward bow) and the four corner radii with a 1-D search,
+      //      giving an analytic signed distance field of the opening;
+      //   3. grows that opening by `outset` per side (never past the measured
+      //      seam `budget`) for the picture mask, and by `outset - holeMargin`
+      //      for the hole in the photo-cropped bezel that sits on top of it;
+      //   4. derives the light layers from the same field (shade, tint,
+      //      reflect, spill ring) and asserts that no pixel >= `chrome` luma
+      //      lies inside the grown band.
+      tube: {
+        rays: 720,
+        startFrac: 0.6,
+        searchFrac: 1.25,
+        searchPad: 6,
+        step: 0.5,
+        gap: 14,
+        run: 1,
+        fitCorner: 0.6,
+        fitRejectPx: 2.5,
+        chrome: 38,
+        pad: 24,
+        feather: 1.5,
+        holeMargin: 1.25,
+        holeFeather: 1,
+        outset: { top: 3, right: -0.5, bottom: 4, left: 4 },
+        budget: { top: 6, right: 3, bottom: 25, left: 25 },
+        shade: { edge: 0.16, band: 0.05, corner: 0.9, cornerReach: 0.14, topLip: 0.3, topLipBand: 0.08, vignette: 0.1 },
+        tint: { sigma: 25 },
+        reflect: { sigma: 8, tight: 0.8, threshold: 14, gain: 2.2, inset: 6 },
+        ring: { peak: 0.25, band: 0.04, halation: 0.03, darkLo: 22, darkHi: 50 },
+      },
     },
     items: [
       // Five repositories with the highest 2026 commit counts on github.com/BrainEno

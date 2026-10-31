@@ -1,0 +1,62 @@
+{
+  "ae8ab0ef2d76": {
+    "note": "Frozen automatic fit of public/images/tv.webp, keyed by its hash. Edit to hand-tune; delete the entry to return to the automatic fit. reflectRois lists the only places the photo's glass really reflects something (street lamp, diagonal bar, green bar). A 'left-line' ROI was tried and removed: it caught the orange/green arc of the lit raster, which is emission, not reflection.",
+    "edges": {
+      "top": {
+        "pos": 983.909,
+        "tilt": -1.965,
+        "curve": 4.097
+      },
+      "right": {
+        "pos": 1431.904,
+        "tilt": 0.179,
+        "curve": -4.76
+      },
+      "bottom": {
+        "pos": 1248.3,
+        "tilt": -2.032,
+        "curve": -8.665
+      },
+      "left": {
+        "pos": 1096.191,
+        "tilt": 2.026,
+        "curve": 4.972
+      }
+    },
+    "radius": {
+      "tl": 30,
+      "tr": 16.5,
+      "br": 14,
+      "bl": 20
+    },
+    "outset": {
+      "top": 3,
+      "right": -0.5,
+      "bottom": 4,
+      "left": 4
+    },
+    "reflectRois": [
+      {
+        "name": "street-lamp",
+        "x": 1201,
+        "y": 1069,
+        "rx": 17,
+        "ry": 15
+      },
+      {
+        "name": "diagonal-bar",
+        "x": 1247,
+        "y": 1099,
+        "rx": 17,
+        "ry": 27
+      },
+      {
+        "name": "right-green-bar",
+        "x": 1412,
+        "y": 1090,
+        "rx": 21,
+        "ry": 8
+      }
+    ]
+  }
+}

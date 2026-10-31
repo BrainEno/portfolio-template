@@ -16,6 +16,7 @@
 import sharp from "sharp";
 import { copyFile, existsSync, mkdirSync, readFileSync } from "node:fs";
 import path from "node:path";
+import { readTv } from "../lib/read-tv.mjs";
 
 const root = path.resolve(import.meta.dirname, "..", "..");
 const out = path.join(root, "public", "images");
@@ -27,13 +28,14 @@ mkdirSync(iconsOut, { recursive: true });
 
 const W = 2560;
 const H = 1707;
-// Glass rectangle of the *placeholder* cabinet, in the same percentages the
-// content uses (`src/portfolio/content/defaults.ts` → `works.tv.screen`).
-// They must agree: if this artwork is ever seeded as `tv.webp` (a fresh clone
-// with no photo), the picture overlay is positioned from those percentages, so
-// a placeholder with the glass somewhere else would look broken.
-// Defaults today: { top: 57.18, left: 43.45, width: 12.9688, height: 15.8781 }.
-const glass = { x: 0.4345 * W, y: 0.5718 * H, w: 0.129688 * W, h: 0.158781 * H };
+// Glass rectangle of the *placeholder* cabinet. It is READ from the content
+// (`src/portfolio/content/defaults.ts` → `works.tv.screen`), not copied: if this
+// artwork is ever seeded as `tv.webp` (a fresh clone with no photo), the tube
+// layers are positioned from those percentages, so a placeholder with the glass
+// anywhere else would look broken. `npm run tv-tube` then traces this artwork
+// the same way it traces a real photo.
+const screen = readTv(root).screen;
+const glass = { x: (screen.left / 100) * W, y: (screen.top / 100) * H, w: (screen.width / 100) * W, h: (screen.height / 100) * H };
 
 const grain = (w, h, count, color) =>
   Array.from({ length: count }, (_, i) => {

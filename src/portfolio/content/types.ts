@@ -60,6 +60,66 @@ export type ScreenRect = {
   height: number;
 };
 
+type Sides<T = number> = { top: T; right: T; bottom: T; left: T };
+
+/**
+ * Knobs of `scripts/tv-tube.mjs`, the build step that turns the television
+ * photo into a precise glass aperture plus the light layers that make the
+ * picture look like it is *inside* the tube. Every value the script uses is
+ * read from here (see `scripts/lib/read-tv.mjs`) — it has no private defaults.
+ * Lengths are photo pixels unless the name says "frac" (fraction of the glass
+ * height / of the ray length).
+ */
+export type TubeConfig = {
+  /** Directions cast from the glass centre when measuring the opening. */
+  rays: number;
+  /** Where each ray starts / stops searching, as a fraction of the seed half-extent. */
+  startFrac: number;
+  searchFrac: number;
+  /** Extra px added to the search distance. */
+  searchPad: number;
+  /** Ray sampling step (px). */
+  step: number;
+  /** Luma at/below which a pixel belongs to the dark seam between glass and chrome. */
+  gap: number;
+  /** The seam must stay below `gap` for this many px (a single dark grain is not a seam). */
+  run: number;
+  /** Rays beyond this fraction of the half-extent on both axes are corner rays (not used for the edge fits). */
+  fitCorner: number;
+  /** Fit outliers further than this (px) from the quadratic are dropped. */
+  fitRejectPx: number;
+  /** Luma at/above which a pixel is chrome / a bright hairline — it must never be covered. */
+  chrome: number;
+  /** Margin around the aperture kept in every derived image (≥ 20 for the bezel). */
+  pad: number;
+  /** Edge softness of the screen mask (px). */
+  feather: number;
+  /** How far inside the mask edge the bezel hole ends (px), so picture always lies under the hole's feather. */
+  holeMargin: number;
+  holeFeather: number;
+  /** How far the picture is allowed to run past the glass edge per side (px). Must stay inside `budget`. */
+  outset: Sides;
+  /** Measured width of the dark seam per side (px) — the hard upper bound for `outset`. */
+  budget: Sides;
+  shade: {
+    /** Multiplier at the very edge of the glass. */
+    edge: number;
+    /** Falloff distance as a fraction of the glass height. */
+    band: number;
+    /** Extra multiplier in the four corners. */
+    corner: number;
+    cornerReach: number;
+    /** Extra darkening under the top lip of the bezel. */
+    topLip: number;
+    topLipBand: number;
+    /** Broad radial vignette strength. */
+    vignette: number;
+  };
+  tint: { sigma: number };
+  reflect: { sigma: number; tight: number; threshold: number; gain: number; inset: number };
+  ring: { peak: number; band: number; halation: number; darkLo: number; darkHi: number };
+};
+
 export type PortfolioContent = {
   version: 2;
   identity: {
@@ -92,6 +152,7 @@ export type PortfolioContent = {
       width: number;
       height: number;
       screen: ScreenRect;
+      tube: TubeConfig;
     };
     items: Work[];
   };

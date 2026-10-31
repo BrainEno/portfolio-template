@@ -10,10 +10,11 @@
 "use client";
 
 import { gsap } from "gsap";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type RefObject } from "react";
 import type { LocalizedText } from "../content/types";
 import { srcSetFor } from "./Img";
 import { asset } from "../seo/asset";
+import { useTvSpill } from "./useTvSpill";
 
 export type TvWork = {
   id: string;
@@ -30,6 +31,8 @@ type Props = {
   active: TvWork | null;
   /** Alt text for the current language. */
   label: (text: LocalizedText) => string;
+  /** The spill canvas (sibling of the tube, above the bezel) that this component feeds with samples of the picture. */
+  spillRef: RefObject<HTMLCanvasElement | null>;
 };
 
 /**
@@ -50,7 +53,7 @@ type Props = {
  * a rolling white bar) — no WebGL, no per-pixel work, nothing that can jank a
  * scroll.
  */
-export default function TvShowreel({ active, label }: Props) {
+export default function TvShowreel({ active, label, spillRef }: Props) {
   const coverRef = useRef<HTMLImageElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const staticRef = useRef<HTMLDivElement>(null);
@@ -245,6 +248,19 @@ export default function TvShowreel({ active, label }: Props) {
 
   const isVideoWork = Boolean(shown?.videoSrc);
   const posterSrc = shown?.videoPoster ?? shown?.src;
+
+  // The picture lights its own surroundings (see useTvSpill): one sample for a
+  // still, ≤ 12 fps for a playing, visible video.
+  useTvSpill({
+    canvasRef: spillRef,
+    imgRef: coverRef,
+    videoRef,
+    hasWork: Boolean(shown),
+    isVideo: isVideoWork,
+    poster: posterSrc ? asset(posterSrc) : undefined,
+    playing: isPlaying,
+    stillKey: shown?.src,
+  });
 
   return (
     <>

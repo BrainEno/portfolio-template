@@ -9,7 +9,7 @@
  */
 "use client";
 
-import { memo, useLayoutEffect, useRef, type CSSProperties } from "react";
+import { lazy, memo, Suspense, useLayoutEffect, useRef, useSyncExternalStore, type CSSProperties } from "react";
 import TvShowreel from "./TvShowreel";
 import { Img } from "./Img";
 import { asset } from "../seo/asset";
@@ -17,6 +17,10 @@ import { t } from "../content/normalize";
 import type { Language, PortfolioContent } from "../content/types";
 import { cx } from "./cx";
 import { PhoneBoothModel } from "./PhoneBoothModel";
+import tube from "../content/tv-tube.json";
+
+/** `?tvdebug=1` overlay — development builds only; the branch is dead code (and the chunk is dropped) in production. */
+const TvDebug = process.env.NODE_ENV !== "production" ? lazy(() => import("./TvDebug")) : null;
 
 type SectionProps<K extends keyof PortfolioContent> = {
   lang: Language;
@@ -149,56 +153,60 @@ export function Works({ lang, content, phone, activeIndex, onPreview }: WorksPro
   const zh = lang === "zh";
   const active = activeIndex >= 0 ? content.items[activeIndex] : undefined;
   const { screen, width, height, src } = content.tv;
-  const tvStyle = {
+  const spillRef = useRef<HTMLCanvasElement>(null);
+  const debug = useSyncExternalStore(
+    () => () => {},
+    () => new URLSearchParams(window.location.search).has("tvdebug"),
+    () => false,
+  );
+
+  // `tv-tube.json` describes *this* photo. If the content points at another
+  // image, fall back to the seed rectangle and plain CSS (no mask, bezel or
+  // light layers) instead of drawing a stranger's glass onto it.
+  const tubeOk = tube.photo.src === src && tube.photo.width === width && tube.photo.height === height;
+  const box = tubeOk ? tube.box : { top: screen.top, left: screen.left, width: screen.width, height: screen.height };
+  const aperture = tubeOk ? tube.aperture : { top: 0, left: 0, width: 100, height: 100 };
+  const url = (file: string) => `url(${asset(file)})`;
+  const style: CSSProperties = {
     "--tv-ratio": `${width} / ${height}`,
+    // `--screen-*` = the glass opening itself. The choreography frames it (zoom
+    // centre, anchor offset), so these must NOT be replaced by the padded box.
     "--screen-top": `${screen.top}%`,
     "--screen-left": `${screen.left}%`,
     "--screen-width": `${screen.width}%`,
     "--screen-height": `${screen.height}%`,
     "--screen-cx": `${screen.left + screen.width / 2}%`,
     "--screen-cy": `${screen.top + screen.height / 2}%`,
+    // `--tube-box-*`: where the tube's layers live (opening + padding), % of the photo.
+    "--tube-box-top": `${box.top}%`,
+    "--tube-box-left": `${box.left}%`,
+    "--tube-box-width": `${box.width}%`,
+    "--tube-box-height": `${box.height}%`,
+    // `--aperture-*`: the picture's bounding box, % of the box. Raster children are placed against this.
+    "--aperture-top": `${aperture.top}%`,
+    "--aperture-left": `${aperture.left}%`,
+    "--aperture-width": `${aperture.width}%`,
+    "--aperture-height": `${aperture.height}%`,
+    ...(tubeOk
+      ? {
+          "--tube-mask": url(tube.files.mask.src),
+          "--tube-shade": url(tube.files.shade.src),
+          "--tube-tint": url(tube.files.tint.src),
+          "--tube-reflect": url(tube.files.reflect.src),
+          "--tube-ring": url(tube.files.ring.src),
+        }
+      : {}),
   } as CSSProperties;
 
   return (
     <section id="works" className="works" aria-label={t(content.heading, lang)}>
-      {/* SVG clip-path that traces the exact inner bezel edge of the TV screen.
-          This replaces the crude border-radius approximation with a precise path
-          (like Photoshop's pen tool), so the content seamlessly fits inside the
-          TV frame even when zoomed and rotated. */}
-      <svg width="0" height="0" style={{ position: "absolute" }} aria-hidden="true">
-        <defs>
-          <clipPath id="tv-screen-clip" clipPathUnits="objectBoundingBox">
-            {/* Rounded rectangle with bezier curves matching the actual bezel opening.
-                Corner radii: TL 9%/9%, TR 7%/8%, BR 8%/9%, BL 10%/10%.
-                Bezier approximation factor: 0.5523 for smooth quarter-circle arcs. */}
-            <path d="M 0.09 0 L 0.93 0 C 0.93 0.0442, 0.9687 0.08, 1 0.08 L 1 0.91 C 1 0.9597, 0.9558 1, 0.92 1 L 0.10 1 C 0.0448 1, 0 0.9552, 0 0.90 L 0 0.09 C 0 0.0403, 0.0497 0, 0.09 0 Z" />
-          </clipPath>
-        </defs>
-      </svg>
       <div className="tv-stage">
-        <div className="tv-anchor" style={tvStyle}>
-          <div className="tv-box">
-            <div className={cx("tv-screen", active && "has-preview")}>
-              <div className="tv-screen-base" />
-            <div className="tv-showreel">
-              <TvShowreel
-                active={
-                  active
-                    ? {
-                        id: active.id,
-                        src: active.image.src,
-                        alt: active.image.alt,
-                        videoSrc: active.video?.src,
-                        videoPoster: active.video?.poster,
-                      }
-                    : null
-                }
-                label={(text) => t(text, lang)}
-              />
-            </div>
-              <div className="tv-scanlines" aria-hidden="true" />
-              <div className="tv-glass" aria-hidden="true" />
-            </div>
+        <div className="tv-anchor" style={style}>
+          <div className={cx("tv-box", !tubeOk && "no-tube")}>
+            {/* Bottom → top: photo · screen (picture + light) · number · bezel · spill.
+                The bezel is the photo's own pixels around the opening, laid over
+                the picture, so the picture can run a few px under it and no seam
+                can show; the spill is the picture's light on the seam and lip. */}
             {/* Below the fold: no `<link rel=preload>` for artwork nobody has
                 scrolled to yet.
                 `sizes` mirrors `.tv-anchor`'s `max(160vw, 230vh)`: the cabinet
@@ -216,13 +224,54 @@ export function Works({ lang, content, phone, activeIndex, onPreview }: WorksPro
               width={width}
               height={height}
             />
-            <div className="tv-number-layer" aria-hidden="true">
-              <div className="tv-number">{phone}</div>
+            <div className={cx("tv-screen", active && "has-preview")}>
+              {/* Opaque at all times: whatever the tube shows, the photo's own lit glass never does. */}
+              <div className="tv-screen-base" />
+              <div className="tv-raster">
+                <div className="tv-showreel">
+                  <TvShowreel
+                    active={
+                      active
+                        ? {
+                            id: active.id,
+                            src: active.image.src,
+                            alt: active.image.alt,
+                            videoSrc: active.video?.src,
+                            videoPoster: active.video?.poster,
+                          }
+                        : null
+                    }
+                    label={(text) => t(text, lang)}
+                    spillRef={spillRef}
+                  />
+                </div>
+              </div>
+              <div className="tv-scanlines" aria-hidden="true" />
+              {/* Light, in the order picture × tint × shade + black + reflect. */}
+              <div className="tv-tint" aria-hidden="true" />
+              <div className="tv-shade" aria-hidden="true" />
+              <div className="tv-black" aria-hidden="true" />
+              <div className="tv-reflect" aria-hidden="true" />
             </div>
+            <div className="tv-number-layer" aria-hidden="true">
+              <div className="tv-number-frame">
+                <div className="tv-number">{phone}</div>
+              </div>
+            </div>
+            {tubeOk ? (
+              // eslint-disable-next-line @next/next/no-img-element -- a 26 KB cut-out of the photo; sized by CSS to the box.
+              <img className="tv-bezel" src={asset(tube.files.bezel.src)} alt="" aria-hidden="true" draggable={false} width={tube.box.w} height={tube.box.h} />
+            ) : null}
+            <canvas ref={spillRef} className="tv-spill" width={24} height={16} aria-hidden="true" />
           </div>
         </div>
         <div className="tv-whiteout" aria-hidden="true" />
       </div>
+      {TvDebug && debug ? (
+        <Suspense fallback={null}>
+          <TvDebug seed={screen} />
+        </Suspense>
+      ) : null}
 
       <div className="works-list">
         <h2 className="works-heading">

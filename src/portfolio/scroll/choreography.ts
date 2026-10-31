@@ -343,7 +343,8 @@ function television(scope: HTMLElement, opts: ChoreographyOptions, desktop: bool
   });
 
   phoneTl
-    .to(".tv-showreel", { autoAlpha: 0, duration: 0.08 }, 0)
+    // The picture and the light it throws go out together.
+    .to([".tv-showreel", ".tv-spill"], { autoAlpha: 0, duration: 0.08 }, 0)
     .to(".tv-box", { scale: 1.14, rotation: -1.5, duration: 0.34, ease: "sine.inOut" }, 0)
     .to(".tv-screen-base", { ...SCREEN.phone, duration: 0.2 }, 0.06)
     .fromTo(
@@ -379,7 +380,10 @@ function television(scope: HTMLElement, opts: ChoreographyOptions, desktop: bool
     .to(".tv-number", { autoAlpha: 0, filter: "blur(16px)", duration: 0.18, ease: "power1.in" }, 0.06)
     .to(".tv-scanlines", { autoAlpha: 0, duration: 0.16, ease: "power1.inOut" }, 0.04)
     // The glass goes first so the burn-out is clean white, not a grey tube.
-    .to(".tv-glass", { autoAlpha: 0, duration: 0.14, ease: "power1.in" }, 0.02)
+    // tint / shade / reflect / black level all scale their opacity by `--glass-k`
+    // (see portfolio.css). Tweening one variable instead of an opacity keeps
+    // them out of an isolated group, where multiply/screen would stop working.
+    .to(".tv-screen", { "--glass-k": 0, duration: 0.14, ease: "power1.in" }, 0.02)
     .to(".tv-box", { scale: 1.2, rotation: -2.5, duration: 0.12, ease: "sine.inOut" }, 0.06)
     // The push runs over a quarter of the exit (~270px of scroll) so a single
     // wheel tick cannot skip it; the tube whitens early in the push, so what
