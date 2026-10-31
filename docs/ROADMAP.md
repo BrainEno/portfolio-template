@@ -11,6 +11,40 @@
 
 ---
 
+## 本轮已交付（第十二轮，2026-10-31）
+
+### 左缘残留缝修复：开口重测（含暗绿玻璃边缘）+ 每边暗缝预算外扩
+
+实测反馈：第十一轮后 zoom 时左侧仍有一条缝。复盘发现第十一轮的玻璃边界是用亮度 >55
+量的，只量到了**点亮的橙色光栅**，漏掉了两侧未点亮的暗绿玻璃（左缘中段真正外凸到
+x≈1099，而旧洞只到 1110）——那条没被覆盖的暗绿带就是截图里的缝。
+
+本轮把几何求解交给脚本自动做（`scripts/tv-tube.mjs`，改名自 tv-cutout.mjs，输出追加
+`content/tv-tube.json`）：
+
+1. **aperture 重测**：从种子中心 flood-fill，阈值降到亮度 >24 → 真实玻璃
+   x 1094–1433 / y 985–1249（含暗绿边缘）。`works.tv.screen` 同步改成这个 aperture
+   （{ top: 57.7, left: 42.73, width: 13.24, height: 15.47 }），仍只当 zoom 中心
+   （--screen-cx/cy）和兜底；占位插画几何同步。
+2. **每边暗缝预算**：从玻璃边向外扫到第一个亮像素（≥38，即铬边/亮发丝线）的距离取 p10
+   → l 32 / r 4 / t 7 / b 11 px；洞 = aperture 沿真实轮廓按 outset = p10−4 外扩
+   （l22 / r1 / t3 / b7），羽化 σ1.5px。右缘只有 ~4px 缝，外扩 1px + 羽化也舔不到铬边。
+   脚本带 guard：外扩带内出现 ≥38 的亮像素会告警（本次实测 0 个，max 37）。
+   修掉了一个实现 bug：row∩column 交集在弧形左右缘会把列外像素全部丢掉，导致外扩
+   实际没生效——列无记录时按整列处理。
+3. **分层变量拆开**：页面层 `.tv-screen` / `.tv-number-layer` 改用 json 的
+   `--tube-box-*`（aperture + 28px bleed = x 1066–1461 / y 957–1277），保证永远大于洞、
+   画面压到洞边之下；`--screen-*` 保持 aperture 供编排取景，zoom 框不变化。
+   `npm run tv-glass` 改为在母图上同时画 box（蓝）/ aperture（红）/ 实际洞（绿）。
+4. **黑位抬升**：新增 `.tv-black-lift`（`--tv-black`，默认 rgb(8,12,10)，screen 混合），
+   纯黑画面也会带一点玻璃反光，不会死黑；退场时随 `.tv-glass` / `.tv-glass-glow` 一起淡出。
+
+光场（`.tv-glass-glow`）改为按 box 裁剪生成，叠放关系不变。验证：cutout alpha 逐点核对
+（玻璃内 a≈0，铬边 a=255，洞缘 1.5px 软过渡）、sharp 全栈合成放大视角确认左缘无缝；
+typecheck / lint / build / smoke 全绿。
+
+---
+
 ## 本轮已交付（第十一轮，2026-10-31）
 
 ### 电视屏幕「贴纸感」修复：边界抠进照片，而不是再量一份矩形
@@ -24,7 +58,7 @@
 
 改法（三处一起动）：
 
-1. **边界抠进照片本身**：新增 `scripts/tv-cutout.mjs`（`npm run tv-cutout`，挂进
+1. **边界抠进照片本身**：新增 `scripts/tv-tube.mjs`（`npm run tv-tube`，挂进
    `predev`/`prebuild`），按 `works.tv.screen` 矩形内收 15px 在母图 `assets/images/tv.webp` 上抠出
    r30、羽化 5px 的 alpha 洞，输出 `tv-cutout.webp`（`works.tv.src` 改指向它）。
    DOM 堆叠反转：`.tv-screen`（画面）z1 在 `.tv-frame`（抠洞机柜）z2 之下——
@@ -262,7 +296,7 @@ mock。**不要再把这些条目当待办**；若将来真需要在线编辑，
 ## P1 — 体验与健壮性
 
 - [x] **电视机玻璃校准**（第十轮完成，第十一轮改为抠洞方案）：`works.tv.screen` 按照片实测，
-      `npm run tv-glass` 画出矩形与实际抠洞核对，`npm run tv-cutout` 重新抠洞；
+      `npm run tv-glass` 画出矩形与实际抠洞核对，`npm run tv-tube` 重新抠洞；
       换照片时重跑这两条即可，不再需要后台拖拽工具。
 - [ ] **移动端 CRT 复核**：扫描线/压暗/玻璃高光在小屏的强度，与桌面逐个对照。
 - [ ] **首屏 JS 预算**：`three` 已经在 IntersectionObserver 里动态加载，但

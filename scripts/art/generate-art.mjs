@@ -30,11 +30,11 @@ const H = 1707;
 // Screen-layer rectangle of the *placeholder* cabinet, in the same percentages
 // the content uses (`src/portfolio/content/defaults.ts` → `works.tv.screen`).
 // They must agree: if this artwork is ever seeded as `tv.webp` (a fresh clone
-// with no photo), `scripts/tv-cutout.mjs` punches the glass hole at this rect
+// with no photo), `scripts/tv-tube.mjs` punches the glass hole for this rect
 // (inset 15px), so a placeholder with the glass somewhere else would look
 // broken.
-// Defaults today: { top: 56.3, left: 42.77, width: 13.83, height: 18.28 }.
-const glass = { x: 0.4277 * W, y: 0.563 * H, w: 0.1383 * W, h: 0.1828 * H };
+// Defaults today: { top: 57.7, left: 42.73, width: 13.24, height: 15.47 }.
+const glass = { x: 0.4273 * W, y: 0.577 * H, w: 0.1324 * W, h: 0.1547 * H };
 
 const grain = (w, h, count, color) =>
   Array.from({ length: count }, (_, i) => {
@@ -200,7 +200,7 @@ async function renderCard(targetPath, w, h, title, subtitle, [c1, c2, c3]) {
 // work. The master lives at `assets/images/tv.webp` (outside `public/`, so the
 // static export never ships it); the vector scene is always written to
 // `public/images/tv-placeholder.webp`, and the master is only seeded from it
-// when still missing (a fresh clone of the template) — `scripts/tv-cutout.mjs`
+// when still missing (a fresh clone of the template) — X
 // then turns it into the `tv-cutout.webp` the site actually renders.
 const tvMasterDir = path.join(root, "assets", "images");
 mkdirSync(tvMasterDir, { recursive: true });

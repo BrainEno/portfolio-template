@@ -134,7 +134,7 @@
       "variants": [
         {
           "type": "image/webp",
-          "srcSet": "/images/opt/tv-cutout-1280.76443e38.webp 1280w, /images/opt/tv-cutout-1920.76443e38.webp 1920w, /images/opt/tv-cutout-2560.76443e38.webp 2560w"
+          "srcSet": "/images/opt/tv-cutout-1280.7eda87ff.webp 1280w, /images/opt/tv-cutout-1920.7eda87ff.webp 1920w, /images/opt/tv-cutout-2560.7eda87ff.webp 2560w"
         }
       ]
     },

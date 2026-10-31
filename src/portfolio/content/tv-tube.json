@@ -1,0 +1,40 @@
+{
+  "generator": "scripts/tv-tube.mjs",
+  "sourceHash": "ae8ab0ef",
+  "master": "assets/images/tv.webp",
+  "aperture": {
+    "x": 1094,
+    "y": 985,
+    "w": 339,
+    "h": 264,
+    "left": 42.73,
+    "top": 57.7,
+    "width": 13.24,
+    "height": 15.47
+  },
+  "box": {
+    "x": 1066,
+    "y": 957,
+    "w": 395,
+    "h": 320,
+    "left": 41.64,
+    "top": 56.06,
+    "width": 15.43,
+    "height": 18.75
+  },
+  "outset": {
+    "l": 22,
+    "r": 1,
+    "t": 3,
+    "b": 7
+  },
+  "budgetP10": {
+    "l": 32,
+    "r": 4,
+    "t": 7,
+    "b": 11
+  },
+  "feather": 1.5,
+  "bleed": 28,
+  "note": "aperture = measured glass opening (also mirrored in works.tv.screen, used as zoom centre); box = layer rect for .tv-screen/.tv-number-layer; hole = aperture grown by outset, feathered. Regenerate with `npm run tv-tube` after replacing the master photo."
+}

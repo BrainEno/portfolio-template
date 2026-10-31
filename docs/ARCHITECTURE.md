@@ -91,17 +91,22 @@ Hero、肖像（含重影层）、画廊、两张点缀图、电视封面、作�
 3. 清单是提交进仓库的生成物，脚本按 mtime 增量跳过，几十毫秒就跑完。
 
 **电视图的分层**：边界不再由第二份「量出来的矩形 + clip-path」决定，而是**抠进照片本身**。
-`npm run tv-cutout`（`scripts/tv-cutout.mjs`，`dev`/`build` 前自动跑）读取母图 `tv.webp` 与
-`works.tv.screen` 的百分比矩形，在玻璃位置抠出一个圆角、羽化的 alpha 洞，写出
-`tv-cutout.webp`（站点渲染的就是它）和一张 `tv-glass-glow.webp` 光场图（母图屏幕区域的
-中灰归一化高通：暖/绿光晕、高光斑、边缘暗角）。DOM 上 `.tv-screen`（画面层）在 `.tv-frame`
-（抠洞机柜图）**之下**，所以可见边界永远是照片自己的内边框——画面和边框同属一张图，
-任意缩放旋转都不会错位，也就没有「贴上去的矩形」那圈缝；洞的羽化边让画面到边框是软过渡。
-`works.tv.screen` 只需**大于**洞（洞 = 矩形四边各收 15px），多出的部分被边框盖住，
-只负责保证画面永远压到洞边之下。光场图以 `mix-blend-mode: overlay` 盖在整管屏幕最上层
-（`.tv-glass-glow`，连雪花之上），让注入的画面吃进照片玻璃的现场光。
-换照片流程：替换 `assets/images/tv.webp`（母图）→ `npm run tv-glass` 把红框（层矩形）和青框（实际抠洞）
-画在母图上肉眼对齐 → 把百分比写回 `works.tv.screen` → `npm run tv-cutout && npm run images`。
+`npm run tv-tube`（`scripts/tv-tube.mjs`，`dev`/`build` 前自动跑）对母图 `assets/images/tv.webp`
+做 flood-fill（亮度 >24，连未点亮的暗绿玻璃边缘也算进去）得到真实玻璃 aperture，再按
+**每边暗缝预算**（玻璃边到第一个亮像素 ≥38 距离的 p10，右缘只有 ~4px）算出各边外扩 outset，
+沿真实轮廓抠出羽化 1.5px 的 alpha 洞 → `tv-cutout.webp`（`works.tv.src` 指向它），同时生成
+`tv-glass-glow.webp` 光场图（box 裁剪的 `128 + 1.35·(blur24 − blur120)` 中灰高通：暖/绿环境色、
+高光斑、边缘暗角）和 `content/tv-tube.json`（aperture / box / outset 几何）。DOM 上 `.tv-screen`
+（画面，按 json 的 `box` = aperture + 28px bleed 定位）在 `.tv-frame`（抠洞机柜图）**之下**，
+所以可见边界永远是照片自己的内边框——画面和边框同属一张图，任意缩放旋转都不会错位，缝不存在；
+洞落在暗缝里且带 guard（外扩带内不许出现 ≥38 的亮像素，脚本会告警）。
+`works.tv.screen` 保持为 aperture（zoom 中心 --screen-cx/cy 与 CSS 兜底）。光场图以
+`mix-blend-mode: overlay` 盖在整管屏幕最上层（`.tv-glass-glow`，连雪花之上），另加
+`--tv-black`（默认 rgb(8,12,10)）的 screen 黑位抬升（`.tv-black-lift`），让注入画面吃进
+照片玻璃的现场光、纯黑画面也不会死黑。
+换照片流程：替换 `assets/images/tv.webp`（母图）→ `npm run tv-glass` 在母图上画出
+box（蓝）/ aperture（红）/ 实际抠洞（绿）目检 → 把 aperture 百分比写回 `works.tv.screen`
+→ `npm run tv-tube && npm run images`。
 
 ## 6. 转场与 Contact 区动效
 
@@ -190,7 +195,7 @@ Hero、肖像（含重影层）、画廊、两张点缀图、电视封面、作�
 - 电视机默认是矢量原创插画（`tv-placeholder.webp` 的源），可以直接用**你自己的照片**替换
   `assets/images/tv.webp`；换完后跑 `npm run tv-glass` 把屏幕矩形画在母图上肉眼对齐，
   把百分比写回 `works.tv.screen`（矩形要盖住玻璃并压上内边框几像素），再跑
-  `npm run tv-cutout && npm run images` 重新抠洞、生成派生图与清单。
+  `npm run tv-tube && npm run images` 重新抠洞、生成派生图与清单。
   照片比例换得狠时，`160vw / 230vh` 的锚定尺寸也要复核。
   电话亭为上传的 glTF 模型。
 - 仓库同时保留原始 `telephone.gltf`（38 MB，在 `assets/models/`）与优化后的 `.glb`（2.15 MB，在 `public/gltfs/`），
