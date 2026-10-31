@@ -10,7 +10,7 @@
 "use client";
 
 import { gsap } from "gsap";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type RefObject } from "react";
 import type { LocalizedText } from "../content/types";
 import { srcSetFor } from "./Img";
 import { asset } from "../seo/asset";
@@ -30,6 +30,12 @@ type Props = {
   active: TvWork | null;
   /** Alt text for the current language. */
   label: (text: LocalizedText) => string;
+  /**
+   * The 24×16 sample canvas behind `.tv-spill` (owned by `sections.tsx`, so
+   * the glow can sit above the bezel in paint order while this component —
+   * which holds the picture elements and the playing state — feeds it).
+   */
+  spillRef?: RefObject<HTMLCanvasElement | null>;
 };
 
 /**
@@ -50,7 +56,7 @@ type Props = {
  * a rolling white bar) — no WebGL, no per-pixel work, nothing that can jank a
  * scroll.
  */
-export default function TvShowreel({ active, label }: Props) {
+export default function TvShowreel({ active, label, spillRef }: Props) {
   const coverRef = useRef<HTMLImageElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const staticRef = useRef<HTMLDivElement>(null);
@@ -211,6 +217,79 @@ export default function TvShowreel({ active, label }: Props) {
     },
     []
   );
+
+  /**
+   * E (spill): keep the tiny sample canvas in sync with the tube.
+   *
+   * Budget from the spec: `drawImage` only (never `getImageData`), ≤12 fps,
+   * running solely while a picture is shown, the document is visible and the
+   * canvas is on screen. Under `prefers-reduced-motion` it samples once and
+   * stays there — a static glow, no loop. The element's CSS opacity (capped
+   * at 0.25 by `.tv-spill`) guarantees the ≤0.25 peak regardless of what the
+   * canvas paints.
+   */
+  useEffect(() => {
+    const canvas = spillRef?.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    let raf = 0;
+    let last = -Infinity;
+    let onScreen = true;
+
+    const sample = () => {
+      const video = videoRef.current;
+      const isVideo = Boolean(shownRef.current?.videoSrc);
+      const source: CanvasImageSource | null = isVideo
+        ? video && video.readyState >= 2
+          ? video
+          : null
+        : coverRef.current?.complete && (coverRef.current?.naturalWidth ?? 0) > 0
+          ? coverRef.current
+          : null;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      if (!source) return;
+      ctx.drawImage(source, 0, 0, canvas.width, canvas.height);
+    };
+
+    const eligible = () =>
+      Boolean(shownRef.current) &&
+      onScreen &&
+      !document.hidden &&
+      // During the channel change the outgoing picture is already gone; the
+      // snow owns the tube, so sampling it would leak grain into the seam.
+      !staticRef.current?.style.opacity;
+
+    if (reduce) {
+      sample();
+      return () => ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+
+    const tick = (time: number) => {
+      raf = requestAnimationFrame(tick);
+      if (time - last < 1000 / 12) return;
+      last = time;
+      if (!eligible()) {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        return;
+      }
+      sample();
+    };
+    const io =
+      "IntersectionObserver" in window
+        ? new IntersectionObserver((entries) => {
+            onScreen = entries.some((entry) => entry.isIntersecting);
+          })
+        : null;
+    io?.observe(canvas);
+    raf = requestAnimationFrame(tick);
+    return () => {
+      cancelAnimationFrame(raf);
+      io?.disconnect();
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    };
+  }, [active, spillRef]);
 
   /**
    * Click the tube to play or pause the video. A still work has nothing to

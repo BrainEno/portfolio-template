@@ -39,6 +39,11 @@ export type Work = {
   /** Still shown inside the television when the work is not a video. */
   image: MediaImage;
   /**
+   * Optional `object-position` for the TV cover (e.g. `"50% 30%"`) when the
+   * still needs a different crop inside the tube's aperture.
+   */
+  tvPosition?: string;
+  /**
    * Optional video shown on the TV screen instead of `image`.
    * When present, the TV displays the poster (or `image` as fallback) until
    * the user clicks to play. `preload="metadata"` — never auto-plays.
@@ -58,6 +63,39 @@ export type ScreenRect = {
   left: number;
   width: number;
   height: number;
+};
+
+/**
+ * Solver parameters for `scripts/tv-tube.mjs` — every knob the tube pipeline
+ * reads lives in the content, not in the script. Flat on purpose: the script
+ * parses this block out of `defaults.ts` (or a `published.json` snapshot).
+ */
+export type TvTubeParams = {
+  darkRun: number;
+  /** Seam-aware run lengths: right/top edges only show 1–9px of seam. */
+  darkRunShort: number;
+  darkRunBottom: number;
+  darkThresh: number;
+  lookback: number;
+  brightFloor: number;
+  floodGlow: number;
+  cornerTl: number;
+  cornerTr: number;
+  cornerBl: number;
+  cornerBr: number;
+  outsetLeft: number;
+  outsetRight: number;
+  outsetTop: number;
+  outsetBottom: number;
+  budgetLeft: number;
+  budgetRight: number;
+  budgetTop: number;
+  budgetBottom: number;
+  budgetLum: number;
+  feather: number;
+  reflectThreshold: number;
+  reflectInset: number;
+  tintBlur: number;
 };
 
 export type PortfolioContent = {
@@ -91,7 +129,10 @@ export type PortfolioContent = {
       src: string;
       width: number;
       height: number;
+      /** Measured glass opening, percent of the photo — the zoom framing. */
       screen: ScreenRect;
+      /** `scripts/tv-tube.mjs` solver parameters (see defaults.ts). */
+      tube: TvTubeParams;
     };
     items: Work[];
   };

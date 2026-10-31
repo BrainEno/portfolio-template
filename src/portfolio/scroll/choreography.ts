@@ -378,8 +378,9 @@ function television(scope: HTMLElement, opts: ChoreographyOptions, desktop: bool
     .to(".tv-number", { scale: desktop ? 4.8 : 3.2, duration: 0.26, ease: "power2.in" }, 0)
     .to(".tv-number", { autoAlpha: 0, filter: "blur(16px)", duration: 0.18, ease: "power1.in" }, 0.06)
     .to(".tv-scanlines", { autoAlpha: 0, duration: 0.16, ease: "power1.inOut" }, 0.04)
-    // The glass goes first so the burn-out is clean white, not a grey tube.
-    .to(".tv-glass", { autoAlpha: 0, duration: 0.14, ease: "power1.in" }, 0.02)
+    // The tube lighting (tint/shade/reflect + halation/spill) goes first so
+    // the burn-out is clean white, not a grey tube.
+    .to(".tv-tint, .tv-shade, .tv-reflect, .tv-halation, .tv-spill", { autoAlpha: 0, duration: 0.14, ease: "power1.in" }, 0.02)
     .to(".tv-box", { scale: 1.2, rotation: -2.5, duration: 0.12, ease: "sine.inOut" }, 0.06)
     // The push runs over a quarter of the exit (~270px of scroll) so a single
     // wheel tick cannot skip it; the tube whitens early in the push, so what

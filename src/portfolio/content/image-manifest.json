@@ -127,6 +127,72 @@
         }
       ]
     },
+    "/images/tv-tube/hole.ae8ab0ef.png": {
+      "width": 1280,
+      "height": 1039,
+      "quality": 78,
+      "variants": [
+        {
+          "type": "image/webp",
+          "srcSet": "/images/opt/tv-tube-hole.ae8ab0ef-480.33d96f3f.webp 480w, /images/opt/tv-tube-hole.ae8ab0ef-800.33d96f3f.webp 800w, /images/opt/tv-tube-hole.ae8ab0ef-1200.33d96f3f.webp 1200w"
+        }
+      ]
+    },
+    "/images/tv-tube/mask.ae8ab0ef.png": {
+      "width": 1280,
+      "height": 1039,
+      "quality": 78,
+      "variants": [
+        {
+          "type": "image/webp",
+          "srcSet": "/images/opt/tv-tube-mask.ae8ab0ef-480.70a247bd.webp 480w, /images/opt/tv-tube-mask.ae8ab0ef-800.70a247bd.webp 800w, /images/opt/tv-tube-mask.ae8ab0ef-1200.70a247bd.webp 1200w"
+        }
+      ]
+    },
+    "/images/tv-tube/reflect.ae8ab0ef.webp": {
+      "width": 1280,
+      "height": 1039,
+      "quality": 78,
+      "variants": [
+        {
+          "type": "image/webp",
+          "srcSet": "/images/opt/tv-tube-reflect.ae8ab0ef-480.3af46c75.webp 480w, /images/opt/tv-tube-reflect.ae8ab0ef-800.3af46c75.webp 800w, /images/opt/tv-tube-reflect.ae8ab0ef-1200.3af46c75.webp 1200w"
+        }
+      ]
+    },
+    "/images/tv-tube/ring.ae8ab0ef.png": {
+      "width": 1280,
+      "height": 1039,
+      "quality": 78,
+      "variants": [
+        {
+          "type": "image/webp",
+          "srcSet": "/images/opt/tv-tube-ring.ae8ab0ef-480.5b03fdbb.webp 480w, /images/opt/tv-tube-ring.ae8ab0ef-800.5b03fdbb.webp 800w, /images/opt/tv-tube-ring.ae8ab0ef-1200.5b03fdbb.webp 1200w"
+        }
+      ]
+    },
+    "/images/tv-tube/shade.ae8ab0ef.webp": {
+      "width": 256,
+      "height": 208,
+      "quality": 78,
+      "variants": [
+        {
+          "type": "image/webp",
+          "srcSet": "/images/opt/tv-tube-shade.ae8ab0ef-256.eb75b7c3.webp 256w"
+        }
+      ]
+    },
+    "/images/tv-tube/tint.ae8ab0ef.webp": {
+      "width": 377,
+      "height": 306,
+      "quality": 78,
+      "variants": [
+        {
+          "type": "image/webp",
+          "srcSet": "/images/opt/tv-tube-tint.ae8ab0ef-377.c467f9d9.webp 377w"
+        }
+      ]
+    },
     "/images/tv.webp": {
       "width": 2560,
       "height": 1707,

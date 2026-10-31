@@ -720,40 +720,47 @@ body {
   left: var(--screen-left);
   width: var(--screen-width);
   height: var(--screen-height);
-  overflow: hidden;
   border-radius: 9% 7% 8% 10% / 9% 8% 9% 10%;
 }
 
+/* The seed rectangle only *locates* the tube; the generated box
+   (json.box) is larger than it, so `.tv-screen` itself never clips — the
+   picture is clipped by the measured outline on `.tv-raster` below.
+   `--screen-*` keeps meaning the glass aperture: the exit zoom's
+   transform-origin and the choreography read it that way. */
 .tv-screen {
-  /* Above `.tv-frame` on purpose. The artwork used to sit on top with a
-     `darken` blend so its (near-white) vector glass let the picture through —
-     a photo's glass is much darker, and `darken` would cap every still at its
-     ~96/255 luminance, i.e. a murky tube. Layering the screen above the
-     artwork means the picture renders at its own brightness and the photo only
-     supplies the cabinet; the glass rectangle (`.works.tv.screen`) is the
-     visible boundary, which is why it is measured rather than guessed. */
-  z-index: 2;
-  background: #020202;
+  overflow: visible;
+  background: var(--tv-black, #020202);
   transform: translateZ(0);
-  /* `clip` (unlike `hidden`) does not force a scroll container, so the
-     screen crop still travels with the zoomed `.tv-box` instead of being
-     pinned to the viewport-sized stage. */
-  overflow: hidden;
-  overflow: clip;
-  /* SVG clip-path traces the exact inner bezel edge with bezier curves
-     (like Photoshop's pen tool path masking). This replaces the crude
-     border-radius approximation so the content seamlessly fits the TV frame.
-     Border-radius kept as fallback for browsers without clip-path support. */
+}
+
+/* The padded tube box inside the seed rectangle (rect set inline from
+   json.box): spans what the mask/hole/shade/reflect assets were rendered
+   for, and clips its subtree to the measured outline. */
+.tv-raster {
+  position: absolute;
   clip-path: url(#tv-screen-clip);
-  /* Subtle inner shadow blends the content edge with the bezel, hiding any
-     remaining anti-aliasing artifacts and preventing the "pasted-on" look. */
+}
+
+/* Above `.tv-frame` on purpose: the picture renders at its own brightness
+   and the photo only supplies the cabinet. The subtle inset shadow darkens
+   the seam ring *behind* the clipped picture, blending the outline into the
+   chrome without touching the picture itself. */
+.tv-screen {
+  z-index: 2;
   box-shadow: inset 0 0 2.5vmin rgba(0, 0, 0, 0.35);
 }
 
+/* Aperture-keyed inside the raster (json.box → apertureInBox): the picture
+   and its opaque backing always cover the measured glass, never the seed's
+   few-px offsets. */
 .tv-screen-base,
 .tv-showreel {
   position: absolute;
-  inset: 0;
+  top: calc(var(--tube-box-ap-top) * 1%);
+  left: calc(var(--tube-box-ap-left) * 1%);
+  width: calc(var(--tube-box-ap-width) * 1%);
+  height: calc(var(--tube-box-ap-height) * 1%);
 }
 
 .tv-screen-base {
@@ -905,8 +912,10 @@ body {
    and the contact section takes over from that white. */
 .tv-scanlines {
   position: absolute;
-  inset: 0;
-  z-index: 3;
+  top: calc(var(--tube-box-ap-top) * 1%);
+  left: calc(var(--tube-box-ap-left) * 1%);
+  width: calc(var(--tube-box-ap-width) * 1%);
+  height: calc(var(--tube-box-ap-height) * 1%);
   pointer-events: none;
   background: repeating-linear-gradient(
     to bottom,
@@ -917,21 +926,131 @@ body {
   );
 }
 
-/* Persistent glass: sheen + edge falloff that never fade with the showreel,
-   so the powered-down tube keeps its material through the phone beat instead
-   of turning into a black hole. */
-.tv-glass {
+/* Scene light on the picture: tint × shade multiply (photo hue + tube
+   vignette), reflect screens the captured highlights back in. The three
+   persist through the phone beat (the tube keeps its material) and are
+   faded by the exit timeline instead. */
+
+/* Photo hue: the generated tint is the box's low-frequency colour,
+   luminance-normalised, so `multiply` only colours — it never dims. */
+.tv-tint {
   position: absolute;
   inset: 0;
+  pointer-events: none;
+  background-image: var(--tube-tint);
+  background-size: 100% 100%;
+  /* Feathered to the generated aperture mask so the chrome is never tinted. */
+  -webkit-mask-image: var(--tube-mask);
+  mask-image: var(--tube-mask);
+  -webkit-mask-size: 100% 100%;
+  mask-size: 100% 100%;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  mix-blend-mode: multiply;
+  opacity: var(--tv-tint, 0.2);
+}
+
+/* T (shade): procedural vignette from the same signed distance field.
+   White outside the aperture keeps `multiply` a no-op over everything the
+   picture does not cover, so the layer fills the padded box safely. */
+.tv-shade {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image: var(--tube-shade);
+  background-size: 100% 100%;
+  mix-blend-mode: multiply;
+}
+
+/* R (reflect): high-pass highlights, inset ≥6px inside the glass, with the
+   override ROIs keeping the dim lamp/streak spots alive. */
+.tv-reflect {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image: var(--tube-reflect);
+  background-size: 100% 100%;
+  mix-blend-mode: screen;
+  opacity: var(--tv-reflect, 0.8);
+}
+
+/* Foreground chrome (`.tv-bezel`): the photo again, masked by the generated
+   inverse hole. Its outset is the generated pad (≥20px) — above the picture,
+   so every clip-path pixel at the tube's edge resolves to photo. */
+.tv-bezel {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  -webkit-mask-image: var(--tube-hole);
+  mask-image: var(--tube-hole);
+  /* mask-size/position derived from json.box (unitless --tube-box-* vars):
+     box as a fraction of the photo, positioned with the standard
+     offset/(element − image) percentage formula. */
+  -webkit-mask-size: calc(var(--tube-box-width) * 1%) calc(var(--tube-box-height) * 1%);
+  mask-size: calc(var(--tube-box-width) * 1%) calc(var(--tube-box-height) * 1%);
+  -webkit-mask-position: calc(var(--tube-box-left) / (100 - var(--tube-box-width)) * 100%)
+    calc(var(--tube-box-top) / (100 - var(--tube-box-height)) * 100%);
+  mask-position: calc(var(--tube-box-left) / (100 - var(--tube-box-width)) * 100%)
+    calc(var(--tube-box-top) / (100 - var(--tube-box-height)) * 100%);
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+}
+
+.tv-bezel-photo {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  pointer-events: none;
+}
+
+/* 2–4% halation: a static warm wash confined to the aperture mask, above
+   the bezel and below the animated spill. */
+.tv-halation {
+  position: absolute;
+  top: calc(var(--tube-box-top) * 1%);
+  left: calc(var(--tube-box-left) * 1%);
+  width: calc(var(--tube-box-width) * 1%);
+  height: calc(var(--tube-box-height) * 1%);
   z-index: 4;
   pointer-events: none;
-  background:
-    radial-gradient(ellipse at 50% 0%, rgba(255, 252, 240, 0.1), transparent 42%),
-    linear-gradient(103deg, transparent 60%, rgba(202, 255, 229, 0.08) 80%, transparent 90%),
-    radial-gradient(ellipse at 50% 46%, transparent 52%, rgba(0, 0, 0, 0.22) 82%, rgba(0, 0, 0, 0.5) 115%),
-    /* Enhanced edge falloff: stronger darkening near the bezel to blend the
-       content seamlessly and hide any clip-path artifacts. */
-    radial-gradient(ellipse at 50% 50%, transparent 55%, rgba(0, 0, 0, 0.18) 78%, rgba(0, 0, 0, 0.42) 100%);
+  background: radial-gradient(closest-side, rgba(255, 243, 224, 0.04), rgba(255, 243, 224, 0.02) 70%, rgba(255, 243, 224, 0.012));
+  mix-blend-mode: screen;
+  -webkit-mask-image: var(--tube-mask);
+  mask-image: var(--tube-mask);
+  -webkit-mask-size: 100% 100%;
+  mask-size: 100% 100%;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+}
+
+/* E (spill): the sampled picture colour bloomed through the generated ring
+   (inner lip + seam extent). Peak ≤0.25 via the knob; TvShowreel drives the
+   canvas at ≤12fps while a picture is actually rolling. */
+.tv-spill {
+  position: absolute;
+  top: calc(var(--tube-box-top) * 1%);
+  left: calc(var(--tube-box-left) * 1%);
+  width: calc(var(--tube-box-width) * 1%);
+  height: calc(var(--tube-box-height) * 1%);
+  z-index: 4;
+  pointer-events: none;
+  opacity: calc(min(var(--tv-spill, 1), 1) * 0.25);
+  mix-blend-mode: screen;
+  -webkit-mask-image: var(--tube-ring);
+  mask-image: var(--tube-ring);
+  -webkit-mask-size: 100% 100%;
+  mask-size: 100% 100%;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+}
+
+.tv-spill-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
 }
 
 .tv-frame {
@@ -948,7 +1067,7 @@ body {
 }
 
 .tv-number-layer {
-  z-index: 3;
+  z-index: 6;
   container-type: inline-size;
   pointer-events: none;
 }

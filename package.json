@@ -10,8 +10,9 @@
     "typecheck": "tsc --noEmit",
     "art": "node scripts/art/generate-art.mjs",
     "tv-glass": "node scripts/tv-glass.mjs",
+    "tv-tube": "node scripts/tv-tube.mjs",
     "preview": "node scripts/preview.mjs",
-    "images": "node scripts/build-images.mjs",
+    "images": "node scripts/build-images.mjs && node scripts/tv-tube.mjs",
     "predev": "npm run images",
     "prebuild": "npm run images",
     "smoke": "node scripts/smoke.mjs"

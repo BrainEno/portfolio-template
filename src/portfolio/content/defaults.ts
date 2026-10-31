@@ -83,18 +83,67 @@ export const defaultContent: PortfolioContent = {
       src: "/images/tv.webp",
       width: 2560,
       height: 1707,
-      // Glass bounds of `tv.webp` (2560x1707), measured from the photo's
-      // gradients: the lit tube runs x 1124-1440 / y 986-1248. The rect is
-      // grown ~12px on every side so it can never be *smaller* than the glass —
-      // a sliver of the photo's own screen beside the picture is the one thing
-      // that reads as broken during the zoom. The bleed lands on the dark
-      // inner bezel, so it costs nothing visibly and absorbs the tube's curved
-      // corners, which a rectangle cannot follow.
+      // Real glass opening of `tv.webp` (2560x1707), measured from the photo:
+      // x ≈ 1100–1432, y ≈ 985–1248 — the *tube*, including the unlit green
+      // glass strips at both edges (the orange raster inside is smaller than
+      // the glass; the glass is smaller than the cabinet). This rect is the
+      // visible aperture and the centre the scroll zoom frames, so it must be
+      // the glass itself — never grown, never the padded layout box.
       //
-      // The CRT picture is layered *above* the artwork (see .tv-screen in
-      // portfolio.css), which is what lets it render at full brightness; this
-      // rect is therefore the visible boundary and needs to be right.
-      screen: { top: 57.18, left: 43.45, width: 12.9688, height: 15.8781 },
+      // The shape drawn around it is *not* this rectangle: `scripts/tv-tube.mjs`
+      // re-measures the four edges (inward scan, no growth past the dark seam),
+      // fits them, and ships the feathered mask / lighting layers to
+      // `tv-tube.json`, which the works section injects as CSS variables.
+      // After editing this rect or `tube`, run `npm run tv-tube` (predev/
+      // prebuild do it) and eyeball with `npm run tv-tube -- --check`.
+      screen: { top: 57.7, left: 42.97, width: 12.97, height: 15.41 },
+      // Solver parameters — read in full by `scripts/tv-tube.mjs` (no hidden
+      // defaults in the script; every knob lives here).
+      tube: {
+        // Inward scan: edge = first run of `darkRun` px under `darkThresh`,
+        // looking back over `lookback` px whose median must exceed
+        // `brightFloor` (bright glass before the dark seam). `floodGlow` is
+        // the luminance floor of the cross-check flood fill.
+        // Seam length differs per side: left 27–38px (long run rejects
+        // cabinet gaps), right/top only 1–9px before trim/hairline, bottom
+        // 4–6px once the cabinet edge crowds the glass.
+        darkRun: 6,
+        darkRunShort: 2,
+        darkRunBottom: 4,
+        darkThresh: 21,
+        lookback: 8,
+        brightFloor: 26,
+        floodGlow: 24,
+        // Corner radii (photo px) used when the circle fit is degenerate — 20
+        // is the clean arc fit at TL; the other corners read the same tight
+        // curve of this tube's glass.
+        cornerTl: 20,
+        cornerTr: 20,
+        cornerBl: 20,
+        cornerBr: 20,
+        // Per-side outward growth of the mask beyond the measured glass, and
+        // the hard caps (the dark-seam budgets: chrome trim sits 3–4px right
+        // of the glass, a bright hairline ~6px above it; the left/bottom seams
+        // run ~30px into the cabinet). Assertions abort the build if a grown
+        // band reaches any pixel ≥ `budgetLum`.
+        outsetLeft: 3,
+        outsetRight: 2,
+        outsetTop: 3,
+        outsetBottom: 2,
+        budgetLeft: 25,
+        budgetRight: 3,
+        budgetTop: 6,
+        budgetBottom: 25,
+        budgetLum: 38,
+        // Mask feather, photo px (the transition lives in the seam).
+        feather: 1.5,
+        // Reflect layer: high-pass threshold and how far inside the aperture
+        // it starts (keeps the glass-edge ring out of the layer).
+        reflectThreshold: 13,
+        reflectInset: 6,
+        // Tint layer: σ of the low-frequency colour blur, photo px.
+        tintBlur: 25,
+      },
     },
     items: [
       // Five repositories with the highest 2026 commit counts on github.com/BrainEno

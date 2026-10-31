@@ -13,6 +13,7 @@ import { memo, useLayoutEffect, useRef, type CSSProperties } from "react";
 import TvShowreel from "./TvShowreel";
 import { Img } from "./Img";
 import { asset } from "../seo/asset";
+import tube from "../content/tv-tube.json";
 import { t } from "../content/normalize";
 import type { Language, PortfolioContent } from "../content/types";
 import { cx } from "./cx";
@@ -149,6 +150,31 @@ export function Works({ lang, content, phone, activeIndex, onPreview }: WorksPro
   const zh = lang === "zh";
   const active = activeIndex >= 0 ? content.items[activeIndex] : undefined;
   const { screen, width, height, src } = content.tv;
+  const spillRef = useRef<HTMLCanvasElement>(null);
+  // `.tv-raster` sits inside the seed rectangle but must span exactly the
+  // generated tube box (json.box), so the box rect is translated into the
+  // seed's coordinate space here — everything %-keyed inside the raster then
+  // lands on the measured aperture, never on the seed's small offsets.
+  const rasterStyle = {
+    top: `${((tube.box.top - screen.top) / screen.height) * 100}%`,
+    left: `${((tube.box.left - screen.left) / screen.width) * 100}%`,
+    width: `${(tube.box.width / screen.width) * 100}%`,
+    height: `${(tube.box.height / screen.height) * 100}%`,
+  } as CSSProperties;
+  // Outline (photo px, generated from the fitted edges + corner arcs) →
+  // objectBoundingBox path against the raster (= json.box), so the clip and
+  // the mask assets describe the same shape in the same rectangle.
+  const clipPathD = (() => {
+    const bx = (tube.box.left / 100) * tube.photo.width;
+    const by = (tube.box.top / 100) * tube.photo.height;
+    const bw = (tube.box.width / 100) * tube.photo.width;
+    const bh = (tube.box.height / 100) * tube.photo.height;
+    return (
+      tube.outline
+        .map(([x, y], i) => `${i === 0 ? "M" : "L"}${((x - bx) / bw).toFixed(5)} ${((y - by) / bh).toFixed(5)}`)
+        .join(" ") + " Z"
+    );
+  })();
   const tvStyle = {
     "--tv-ratio": `${width} / ${height}`,
     "--screen-top": `${screen.top}%`,
@@ -157,6 +183,29 @@ export function Works({ lang, content, phone, activeIndex, onPreview }: WorksPro
     "--screen-height": `${screen.height}%`,
     "--screen-cx": `${screen.left + screen.width / 2}%`,
     "--screen-cy": `${screen.top + screen.height / 2}%`,
+    // Derivative URL set only — layout rides the --tube-box-* block below.
+    "--tube-mask": `url(${asset(tube.assets.mask)})`,
+    "--tube-hole": `url(${asset(tube.assets.hole)})`,
+    "--tube-ring": `url(${asset(tube.assets.ring)})`,
+    "--tube-shade": `url(${asset(tube.assets.shade)})`,
+    "--tube-tint": `url(${asset(tube.assets.tint)})`,
+    "--tube-reflect": `url(${asset(tube.assets.reflect)})`,
+    // Layout, straight from tv-tube.json: the padded tube box (bezel hole,
+    // spill, halation) and the aperture's position inside it (picture,
+    // scanlines). Unitless numbers; CSS multiplies by 1%.
+    "--tube-box-top": `${tube.box.top}`,
+    "--tube-box-left": `${tube.box.left}`,
+    "--tube-box-width": `${tube.box.width}`,
+    "--tube-box-height": `${tube.box.height}`,
+    "--tube-box-ap-top": `${tube.apertureInBox.top}`,
+    "--tube-box-ap-left": `${tube.apertureInBox.left}`,
+    "--tube-box-ap-width": `${tube.apertureInBox.width}`,
+    "--tube-box-ap-height": `${tube.apertureInBox.height}`,
+    // Tube material knobs (generated alongside the assets).
+    "--tv-tint": `${tube.tuning.tint}`,
+    "--tv-reflect": `${tube.tuning.reflect}`,
+    "--tv-spill": `${tube.tuning.spill}`,
+    "--tv-black": tube.tuning.black,
   } as CSSProperties;
 
   return (
@@ -168,10 +217,10 @@ export function Works({ lang, content, phone, activeIndex, onPreview }: WorksPro
       <svg width="0" height="0" style={{ position: "absolute" }} aria-hidden="true">
         <defs>
           <clipPath id="tv-screen-clip" clipPathUnits="objectBoundingBox">
-            {/* Rounded rectangle with bezier curves matching the actual bezel opening.
-                Corner radii: TL 9%/9%, TR 7%/8%, BR 8%/9%, BL 10%/10%.
-                Bezier approximation factor: 0.5523 for smooth quarter-circle arcs. */}
-            <path d="M 0.09 0 L 0.93 0 C 0.93 0.0442, 0.9687 0.08, 1 0.08 L 1 0.91 C 1 0.9597, 0.9558 1, 0.92 1 L 0.10 1 C 0.0448 1, 0 0.9552, 0 0.90 L 0 0.09 C 0 0.0403, 0.0497 0, 0.09 0 Z" />
+            {/* Measured contour: fitted edge polylines + corner arcs from
+                scripts/tv-tube.mjs, normalised to json.box — the same
+                rectangle the mask/hole assets cover. */}
+            <path d={clipPathD} />
           </clipPath>
         </defs>
       </svg>
@@ -179,25 +228,56 @@ export function Works({ lang, content, phone, activeIndex, onPreview }: WorksPro
         <div className="tv-anchor" style={tvStyle}>
           <div className="tv-box">
             <div className={cx("tv-screen", active && "has-preview")}>
-              <div className="tv-screen-base" />
-            <div className="tv-showreel">
-              <TvShowreel
-                active={
-                  active
-                    ? {
-                        id: active.id,
-                        src: active.image.src,
-                        alt: active.image.alt,
-                        videoSrc: active.video?.src,
-                        videoPoster: active.video?.poster,
-                      }
-                    : null
-                }
-                label={(text) => t(text, lang)}
+              {/* Paint order (bottom → top): raster base/picture → scanlines →
+                  tint × shade → reflect. The raster spans the padded box so
+                  mask/shade/reflect fill it edge to edge, while the %-keyed
+                  children key to the measured aperture inside it. */}
+              <div className="tv-raster" style={rasterStyle}>
+                <div className="tv-screen-base" />
+                <div className="tv-showreel">
+                  <TvShowreel
+                    active={
+                      active
+                        ? {
+                            id: active.id,
+                            src: active.image.src,
+                            alt: active.image.alt,
+                            videoSrc: active.video?.src,
+                            videoPoster: active.video?.poster,
+                          }
+                        : null
+                    }
+                    label={(text) => t(text, lang)}
+                    spillRef={spillRef}
+                  />
+                </div>
+                <div className="tv-scanlines" aria-hidden="true" />
+                <div className="tv-tint" aria-hidden="true" />
+                <div className="tv-shade" aria-hidden="true" />
+                <div className="tv-reflect" aria-hidden="true" />
+              </div>
+            </div>
+            {/* Foreground chrome: the photo itself with the feathered hole cut
+                where the glass is, laid above the picture so the clip-path
+                edge and any outline slop always resolve to photo pixels. */}
+            <div className="tv-bezel" aria-hidden="true">
+              <Img
+                className="tv-bezel-photo"
+                src={src}
+                alt=""
+                sizes="(max-aspect-ratio: 4/3) 230vh, 160vw"
+                hidden
+                loading="lazy"
+                draggable={false}
+                width={width}
+                height={height}
               />
             </div>
-              <div className="tv-scanlines" aria-hidden="true" />
-              <div className="tv-glass" aria-hidden="true" />
+            {/* 2–4% halation across the glass (static, independent of motion);
+                the animated spill glow rides the ring mask on top. */}
+            <div className="tv-halation" aria-hidden="true" />
+            <div className="tv-spill" aria-hidden="true">
+              <canvas ref={spillRef} className="tv-spill-canvas" width={24} height={16} />
             </div>
             {/* Below the fold: no `<link rel=preload>` for artwork nobody has
                 scrolled to yet.
