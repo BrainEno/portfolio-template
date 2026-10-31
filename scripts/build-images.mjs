@@ -41,20 +41,26 @@ const QUALITY = 78;
 /** A derivative is only useful if it is at least this much smaller than the next one. */
 const MIN_STEP = 1.15;
 /**
- * Files that must keep their original bytes: the booth cutout is a transparent
- * PNG used as the pre-WebGL state (a lossy re-encode shows as a halo around the
- * silhouette).
+ * Files that must keep their original bytes and get no derivatives:
+ * - the booth cutout is a transparent PNG used as the pre-WebGL state (a
+ *   lossy re-encode shows as a halo around the silhouette);
+ * - `tv-glass-glow.webp` is referenced straight from a CSS background (inline
+ *   style), not through `<Img>`, so it needs no srcSet ladder.
+ * (The television *master* `tv.webp` lives in `assets/images/`, outside
+ * `public/`, so it never reaches this walk at all.)
  */
-const SKIP = new Set(["phone-booth-cutout.png"]);
+const SKIP = new Set(["phone-booth-cutout.png", "tv-glass-glow.webp"]);
 
 /**
  * Per-file overrides. The television artwork is the one image that is *not*
  * laid out at a CSS size: `.tv-anchor` is `max(160vw, 230vh)`, i.e. ~2300 px
  * wide on a desktop and ~1900 px on a phone (portrait), so the default
  * 480/800/1200 ladder would be a soft mess. It gets its own, wider ladder.
+ * The cutout carries an alpha hole, so it is encoded at a higher quality than
+ * the default to keep the feathered edge clean after resampling.
  */
 const OVERRIDES = {
-  "tv.webp": { widths: [1280, 1920, 2560], quality: 76 },
+  "tv-cutout.webp": { widths: [1280, 1920, 2560], quality: 90 },
 };
 
 const force = process.argv.includes("--force");
