@@ -161,20 +161,6 @@ export function Works({ lang, content, phone, activeIndex, onPreview }: WorksPro
 
   return (
     <section id="works" className="works" aria-label={t(content.heading, lang)}>
-      {/* SVG clip-path that traces the exact inner bezel edge of the TV screen.
-          This replaces the crude border-radius approximation with a precise path
-          (like Photoshop's pen tool), so the content seamlessly fits inside the
-          TV frame even when zoomed and rotated. */}
-      <svg width="0" height="0" style={{ position: "absolute" }} aria-hidden="true">
-        <defs>
-          <clipPath id="tv-screen-clip" clipPathUnits="objectBoundingBox">
-            {/* Rounded rectangle with bezier curves matching the actual bezel opening.
-                Corner radii: TL 9%/9%, TR 7%/8%, BR 8%/9%, BL 10%/10%.
-                Bezier approximation factor: 0.5523 for smooth quarter-circle arcs. */}
-            <path d="M 0.09 0 L 0.93 0 C 0.93 0.0442, 0.9687 0.08, 1 0.08 L 1 0.91 C 1 0.9597, 0.9558 1, 0.92 1 L 0.10 1 C 0.0448 1, 0 0.9552, 0 0.90 L 0 0.09 C 0 0.0403, 0.0497 0, 0.09 0 Z" />
-          </clipPath>
-        </defs>
-      </svg>
       <div className="tv-stage">
         <div className="tv-anchor" style={tvStyle}>
           <div className="tv-box">
