@@ -110,6 +110,13 @@ export const defaultContent: PortfolioContent = {
           src: "/images/works/lyric-forge-ktv.jpg",
           alt: { zh: "lyric-forge-ktv 仓库", en: "lyric-forge-ktv repository" },
         },
+        // Video example: uncomment and replace with your own video to show a clip on the TV.
+        // The TV displays the poster (or `image` as fallback) until the user clicks to play.
+        // `preload="metadata"` — never auto-plays, never burns bandwidth on a clip nobody watches.
+        // video: {
+        //   src: "/videos/lyric-forge-ktv.mp4",
+        //   poster: "/images/works/lyric-forge-ktv-poster.jpg",
+        // },
         url: "https://github.com/BrainEno/lyric-forge-ktv",
         description: {
           zh: "本地优先的 KTV 制作与播放应用：歌词时间轴编排、伴奏对齐与离线曲库，全部在一台设备上完成，无需服务端即可开唱。",

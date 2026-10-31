@@ -817,6 +817,35 @@ body {
      two would fight over the same properties. */
 }
 
+/* Video variant of the cover: identical box model to `.tv-cover` so the CRT
+   channel-change animation reads identically on stills and clips. The extra
+   rules here just make sure a paused video with a poster fills the tube the
+   same way an `<img>` does. */
+.tv-video {
+  background: #000;
+  cursor: pointer;
+  /* The poster may not cover the full CRT aspect ratio; `object-fit: cover`
+     on the element itself handles the crop, and `-webkit-media-controls` are
+     suppressed because we draw our own play affordance. */
+  -webkit-media-controls-display: none;
+}
+
+/* The click-to-play glyph: sits above the cover (z 5) but under scanlines
+   and glass (z 3 / 4) so it reads as part of the tube's surface. Fades out
+   the moment the clip starts rolling. */
+.tv-play-btn {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  color: rgba(255, 255, 255, 0.72);
+  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.55));
+  transition: opacity 0.25s ease-out;
+}
+
 /* Analogue snow between channels. The tile is generated once at runtime and
    repeated; GSAP only nudges it a few steps, so the layer costs one composited
    background instead of a per-frame canvas blit. */

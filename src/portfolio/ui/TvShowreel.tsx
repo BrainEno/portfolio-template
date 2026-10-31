@@ -10,12 +10,20 @@
 "use client";
 
 import { gsap } from "gsap";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { LocalizedText } from "../content/types";
 import { srcSetFor } from "./Img";
 import { asset } from "../seo/asset";
 
-export type TvWork = { id: string; src: string; alt: LocalizedText };
+export type TvWork = {
+  id: string;
+  src: string;
+  alt: LocalizedText;
+  /** Present when the work has a video — the TV plays it instead of showing a still. */
+  videoSrc?: string;
+  /** Poster shown before playback; falls back to `src` when omitted. */
+  videoPoster?: string;
+};
 
 type Props = {
   /** The work the page wants on screen; `null` powers the tube down. */
@@ -44,6 +52,7 @@ type Props = {
  */
 export default function TvShowreel({ active, label }: Props) {
   const coverRef = useRef<HTMLImageElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
   const staticRef = useRef<HTMLDivElement>(null);
   const rollRef = useRef<HTMLDivElement>(null);
   const lineRef = useRef<HTMLDivElement>(null);
@@ -51,6 +60,8 @@ export default function TvShowreel({ active, label }: Props) {
   const [shown, setShown] = useState<TvWork | null>(active);
   const shownRef = useRef<TvWork | null>(active);
   const timeline = useRef<gsap.core.Timeline | null>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const isPlayingRef = useRef(false);
 
   /** One 160 px tile of analogue snow, reused as a repeating background. */
   useEffect(() => {
@@ -80,24 +91,41 @@ export default function TvShowreel({ active, label }: Props) {
     const currentId = shownRef.current?.id ?? null;
     if (nextId === currentId) return;
 
-    const cover = coverRef.current;
     const staticLayer = staticRef.current;
     const roll = rollRef.current;
     const line = lineRef.current;
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    // Pause the outgoing video before it leaves the tube — a looping video
+    // collapsing into the sync line would still be draining bandwidth and,
+    // worse, its audio (muted, but still decoded) could steal CPU from the
+    // incoming channel.
+    const video = videoRef.current;
+    if (video) {
+      video.pause();
+      video.currentTime = 0;
+      setIsPlaying(false);
+      isPlayingRef.current = false;
+    }
 
     const commit = (work: TvWork | null) => {
       shownRef.current = work;
       setShown(work);
     };
 
-    if (reduce || !cover || !staticLayer || !roll || !line) {
+    if (reduce || !staticLayer || !roll || !line) {
       commit(active);
       return;
     }
 
     timeline.current?.kill();
     const hadPicture = Boolean(currentId) && Boolean(active);
+
+    // The cover element is whichever medium the active work carries. A still
+    // animates the `<img>`; a video animates the `<video>` — same CSS classes,
+    // same scaleY / filter / opacity grammar, so the CRT channel change reads
+    // identically either way.
+    const cover = (active?.videoSrc ? videoRef.current : coverRef.current) ?? null;
 
     const tl = gsap.timeline({
       defaults: { ease: "power2.out" },
@@ -174,32 +202,103 @@ export default function TvShowreel({ active, label }: Props) {
   useEffect(
     () => () => {
       timeline.current?.kill();
+      const video = videoRef.current;
+      if (video) {
+        video.pause();
+        video.removeAttribute("src");
+        video.load();
+      }
     },
     []
   );
 
+  /**
+   * Click the tube to play or pause the video. A still work has nothing to
+   * toggle, so the handler is a no-op in that case.
+   */
+  const handleScreenClick = useCallback(() => {
+    const video = videoRef.current;
+    if (!video || !video.src) return;
+    if (video.paused) {
+      void video.play().then(() => setIsPlaying(true)).catch(() => setIsPlaying(false));
+    } else {
+      video.pause();
+      setIsPlaying(false);
+    }
+  }, []);
+
+  // Keep a local playing flag in sync with what the <video> element is actually
+  // doing — the play button overlay reads from this, and a tab-switch or
+  // autoplay-policy rejection could stop the clip without us knowing.
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    const onPlay = () => setIsPlaying(true);
+    const onPause = () => setIsPlaying(false);
+    video.addEventListener("play", onPlay);
+    video.addEventListener("pause", onPause);
+    return () => {
+      video.removeEventListener("play", onPlay);
+      video.removeEventListener("pause", onPause);
+    };
+  }, []);
+
+  const isVideoWork = Boolean(shown?.videoSrc);
+  const posterSrc = shown?.videoPoster ?? shown?.src;
+
   return (
     <>
-      {/* The tube is ~21vw wide when it rests, but the works choreography
-          zooms it to the full viewport, so the candidate ladder is chosen for
-          the zoomed size — a screen that pixelates mid-transition would be a
-          far worse trade than the extra ~20 KB. */}
-      {/* eslint-disable-next-line @next/next/no-img-element -- GSAP drives this
-          node directly (the channel change animates the element itself), so it
-          needs the ref; the responsive candidates are attached above. */}
-      <img
-        ref={coverRef}
-        className="tv-cover"
-        src={shown ? asset(shown.src) : undefined}
-        srcSet={shown ? srcSetFor(shown.src) : undefined}
-        sizes={shown?.src ? "(max-width: 767px) 80vw, 55vw" : undefined}
-        alt={shown ? label(shown.alt) : ""}
-        decoding="async"
-        draggable={false}
-      />
+      {isVideoWork ? (
+        // Video on the CRT: preload only metadata so we never burn bandwidth on
+        // a clip the visitor never watches; muted + loop + playsInline keep it
+        // behaving like a still that can spring to life on click. The poster
+        // (or the work's image as fallback) is what the channel-change animation
+        // reveals before playback starts.
+        <video
+          ref={videoRef}
+          className="tv-cover tv-video"
+          src={shown?.videoSrc ? asset(shown.videoSrc) : undefined}
+          poster={posterSrc ? asset(posterSrc) : undefined}
+          preload="metadata"
+          muted
+          loop
+          playsInline
+          onClick={handleScreenClick}
+          aria-label={shown ? label(shown.alt) : ""}
+          draggable={false}
+        />
+      ) : (
+        /* The tube is ~21vw wide when it rests, but the works choreography
+           zooms it to the full viewport, so the candidate ladder is chosen for
+           the zoomed size — a screen that pixelates mid-transition would be a
+           far worse trade than the extra ~20 KB. */
+        /* eslint-disable-next-line @next/next/no-img-element -- GSAP drives this
+           node directly (the channel change animates the element itself), so it
+           needs the ref; the responsive candidates are attached above. */
+        <img
+          ref={coverRef}
+          className="tv-cover"
+          src={shown ? asset(shown.src) : undefined}
+          srcSet={shown ? srcSetFor(shown.src) : undefined}
+          sizes={shown?.src ? "(max-width: 767px) 80vw, 55vw" : undefined}
+          alt={shown ? label(shown.alt) : ""}
+          decoding="async"
+          draggable={false}
+        />
+      )}
       <div ref={staticRef} className="tv-static" aria-hidden="true" />
       <div ref={lineRef} className="tv-sync-line" aria-hidden="true" />
       <div ref={rollRef} className="tv-roll" aria-hidden="true" />
+      {/* The play affordance sits above the glass but below the scanlines so it
+          reads as printed onto the CRT, not floating in front of it. Hidden on
+          still works and while the video is already rolling. */}
+      {isVideoWork && !isPlaying ? (
+        <div className="tv-play-btn" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="48" height="48" fill="currentColor">
+            <path d="M8 5v14l11-7z" />
+          </svg>
+        </div>
+      ) : null}
     </>
   );
 }
