@@ -83,18 +83,20 @@ export const defaultContent: PortfolioContent = {
       src: "/images/tv.webp",
       width: 2560,
       height: 1707,
-      // Glass bounds of `tv.webp` (2560x1707), measured from the photo's
-      // gradients: the lit tube runs x 1124-1440 / y 986-1248. The rect is
-      // grown ~12px on every side so it can never be *smaller* than the glass —
-      // a sliver of the photo's own screen beside the picture is the one thing
-      // that reads as broken during the zoom. The bleed lands on the dark
-      // inner bezel, so it costs nothing visibly and absorbs the tube's curved
-      // corners, which a rectangle cannot follow.
+      // Where the glass is on `tv.webp` (2560×1707), as percentages of the
+      // artwork. This is a *seed*, not the final rectangle: the CRT face is
+      // domed, so `npm run tv-tube` probes the photograph for the real glass
+      // edge on every side (a quadratic bow each), walks the boundary out to the
+      // black bezel and writes the derived aperture — mask, shading,
+      // reflections, scanlines and the exact box to place — into
+      // `content/tv-tube.json`. The picture is layered *above* the artwork (see
+      // `.tv-screen` in portfolio.css), so that aperture is the only thing
+      // keeping the seam from reading as a sticker.
       //
-      // The CRT picture is layered *above* the artwork (see .tv-screen in
-      // portfolio.css), which is what lets it render at full brightness; this
-      // rect is therefore the visible boundary and needs to be right.
+      // Replace `public/images/tv.webp` with your own photo, measure its glass
+      // roughly, and run `npm run tv-tube -- --qa` to check the result.
       screen: { top: 57.18, left: 43.45, width: 12.9688, height: 15.8781 },
+      tube: { glow: 16, feather: 2.4, grow: 1.2, radius: 13, band: 6 },
     },
     items: [
       // Five repositories with the highest 2026 commit counts on github.com/BrainEno

@@ -63,7 +63,10 @@ function walk(dir) {
   if (!existsSync(dir)) return [];
   return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
     const full = path.join(dir, entry.name);
-    if (entry.isDirectory()) return entry.name === "opt" ? [] : walk(full);
+    // `opt` holds this script's own output, `tv-tube` the masks and shading
+    // that `scripts/tv-tube.mjs` derives from the television artwork — neither is
+    // a source image, and re-encoding them would break the alpha channel.
+    if (entry.isDirectory()) return entry.name === "opt" || entry.name === "tv-tube" ? [] : walk(full);
     // `.webp` sources are included because the television artwork ships as one
     // (a project usually replaces it with a photo); JPEG/PNG originals keep
     // working as the `src` fallback.

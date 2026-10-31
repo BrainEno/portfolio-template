@@ -1,0 +1,21 @@
+{
+  "generator": "scripts/tv-tube.mjs",
+  "source": "/images/tv.webp",
+  "sourceHash": "ae8ab0ef",
+  "box": {
+    "top": 55.65319273579379,
+    "left": 41.4453125,
+    "width": 16.7578125,
+    "height": 20.679554774458115
+  },
+  "seed": {
+    "top": 0.07383172804532571,
+    "left": 0.11962703962704001,
+    "width": 0.7738957575757576,
+    "height": 0.7678163371104817
+  },
+  "mask": "/images/tv-tube/aperture-9eddd19e.webp",
+  "shade": "/images/tv-tube/shade-9eddd19e.webp",
+  "glint": "/images/tv-tube/glint-9eddd19e.webp",
+  "scanlines": "/images/tv-tube/scanlines-9eddd19e.webp"
+}

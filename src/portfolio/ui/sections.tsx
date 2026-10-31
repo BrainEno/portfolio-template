@@ -15,6 +15,7 @@ import { Img } from "./Img";
 import { asset } from "../seo/asset";
 import { t } from "../content/normalize";
 import type { Language, PortfolioContent } from "../content/types";
+import tube from "../content/tv-tube.json";
 import { cx } from "./cx";
 import { PhoneBoothModel } from "./PhoneBoothModel";
 
@@ -147,56 +148,68 @@ type WorksProps = SectionProps<"works"> & {
 
 export function Works({ lang, content, phone, activeIndex, onPreview }: WorksProps) {
   const zh = lang === "zh";
-  const active = activeIndex >= 0 ? content.items[activeIndex] : undefined;
-  const { screen, width, height, src } = content.tv;
+  const active = activeIndex >= 0 ? content.items[activeIndex] : null;
+  const { width, height, src } = content.tv;
+  /*
+   * The tube's geometry comes from `content/tv-tube.json`, which
+   * `scripts/tv-tube.mjs` derives from the artwork itself (`npm run tv-tube`):
+   * the box the picture is placed on, plus one PNG per optical property —
+   * aperture mask, glass shading, reflections, raster. Everything here is a URL
+   * or a number, so the picture cannot drift off the glass when the artwork is
+   * replaced; only the pipeline has to run again.
+   */
   const tvStyle = {
     "--tv-ratio": `${width} / ${height}`,
-    "--screen-top": `${screen.top}%`,
-    "--screen-left": `${screen.left}%`,
-    "--screen-width": `${screen.width}%`,
-    "--screen-height": `${screen.height}%`,
-    "--screen-cx": `${screen.left + screen.width / 2}%`,
-    "--screen-cy": `${screen.top + screen.height / 2}%`,
+    "--screen-top": `${tube.box.top}%`,
+    "--screen-left": `${tube.box.left}%`,
+    "--screen-width": `${tube.box.width}%`,
+    "--screen-height": `${tube.box.height}%`,
+    "--screen-cx": `${tube.box.left + tube.box.width / 2}%`,
+    "--screen-cy": `${tube.box.top + tube.box.height / 2}%`,
+    "--tube-mask": `url(${asset(tube.mask)})`,
+    "--tube-shade": `url(${asset(tube.shade)})`,
+    "--tube-glint": `url(${asset(tube.glint)})`,
+    "--tube-scan": `url(${asset(tube.scanlines)})`,
   } as CSSProperties;
 
   return (
     <section id="works" className="works" aria-label={t(content.heading, lang)}>
-      {/* SVG clip-path that traces the exact inner bezel edge of the TV screen.
-          This replaces the crude border-radius approximation with a precise path
-          (like Photoshop's pen tool), so the content seamlessly fits inside the
-          TV frame even when zoomed and rotated. */}
-      <svg width="0" height="0" style={{ position: "absolute" }} aria-hidden="true">
-        <defs>
-          <clipPath id="tv-screen-clip" clipPathUnits="objectBoundingBox">
-            {/* Rounded rectangle with bezier curves matching the actual bezel opening.
-                Corner radii: TL 9%/9%, TR 7%/8%, BR 8%/9%, BL 10%/10%.
-                Bezier approximation factor: 0.5523 for smooth quarter-circle arcs. */}
-            <path d="M 0.09 0 L 0.93 0 C 0.93 0.0442, 0.9687 0.08, 1 0.08 L 1 0.91 C 1 0.9597, 0.9558 1, 0.92 1 L 0.10 1 C 0.0448 1, 0 0.9552, 0 0.90 L 0 0.09 C 0 0.0403, 0.0497 0, 0.09 0 Z" />
-          </clipPath>
-        </defs>
-      </svg>
       <div className="tv-stage">
         <div className="tv-anchor" style={tvStyle}>
           <div className="tv-box">
+            {/*
+             * Layer order is the whole trick, and it is the same order a real
+             * set has: phosphor → raster → glass shading → reflections → glass
+             * surface. The element itself is masked by the derived aperture, so
+             * every layer shares one curved silhouette and the picture can
+             * never show a rectangle of its own.
+             */}
             <div className={cx("tv-screen", active && "has-preview")}>
               <div className="tv-screen-base" />
-            <div className="tv-showreel">
-              <TvShowreel
-                active={
-                  active
-                    ? {
-                        id: active.id,
-                        src: active.image.src,
-                        alt: active.image.alt,
-                        videoSrc: active.video?.src,
-                        videoPoster: active.video?.poster,
-                      }
-                    : null
-                }
-                label={(text) => t(text, lang)}
-              />
-            </div>
+              <div className="tv-showreel">
+                <TvShowreel
+                  active={
+                    active
+                      ? {
+                          id: active.id,
+                          src: active.image.src,
+                          alt: active.image.alt,
+                          videoSrc: active.video?.src,
+                          videoPoster: active.video?.poster,
+                        }
+                      : null
+                  }
+                  label={(text) => t(text, lang)}
+                />
+              </div>
               <div className="tv-scanlines" aria-hidden="true" />
+              {/* The photograph's own shading, multiplied over the picture: the
+                  vignette, the dark rim under the bezel lip and the corner
+                  falloff all land where the glass actually has them. */}
+              <div className="tv-shade" aria-hidden="true" />
+              {/* …and its reflections, screened on top, so a highlight that sits
+                  on the glass in the photo also sits on the frame we inject. */}
+              <div className="tv-glint" aria-hidden="true" />
               <div className="tv-glass" aria-hidden="true" />
             </div>
             {/* Below the fold: no `<link rel=preload>` for artwork nobody has

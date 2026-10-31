@@ -720,34 +720,52 @@ body {
   left: var(--screen-left);
   width: var(--screen-width);
   height: var(--screen-height);
-  overflow: hidden;
-  border-radius: 9% 7% 8% 10% / 9% 8% 9% 10%;
 }
 
+/*
+ * The tube is *derived from the photograph*, not approximated over it.
+ *
+ * `scripts/tv-tube.mjs` segments the glass out of `tv.webp`, pushes the boundary
+ * out past the photograph's own lit rim onto the black bezel, and writes:
+ *
+ *   --tube-mask     the aperture silhouette (alpha mask, same box)
+ *   --tube-shade    the glass's own shading, multiplied over the picture
+ *   --tube-glint    whatever the glass reflects, screened on top
+ *   --tube-scan     the raster, bowing with the tube
+ *
+ * The picture is clipped by that mask, so it cannot show an edge of its own, and
+ * the seam is a fade that lands *on the bezel* rather than inside the glass — a
+ * fade inside would show the photo's green phosphor at half strength all the way
+ * round, which is the "sticker" tell in a different colour. Everything downstream
+ * (channel change, phone beat, exit) works on this one element, so they all share
+ * the same silhouette.
+ */
 .tv-screen {
-  /* Above `.tv-frame` on purpose. The artwork used to sit on top with a
-     `darken` blend so its (near-white) vector glass let the picture through —
-     a photo's glass is much darker, and `darken` would cap every still at its
-     ~96/255 luminance, i.e. a murky tube. Layering the screen above the
-     artwork means the picture renders at its own brightness and the photo only
-     supplies the cabinet; the glass rectangle (`.works.tv.screen`) is the
-     visible boundary, which is why it is measured rather than guessed. */
+  /* Above `.tv-frame` on purpose: the artwork supplies the cabinet, the tube is
+     the picture's job. Layering the picture above the photo (rather than
+     blending it through) is what lets it render at full brightness. */
   z-index: 2;
   background: #020202;
   transform: translateZ(0);
-  /* `clip` (unlike `hidden`) does not force a scroll container, so the
-     screen crop still travels with the zoomed `.tv-box` instead of being
-     pinned to the viewport-sized stage. */
+  /* `clip` (unlike `hidden`) does not force a scroll container, so the screen
+     crop still travels with the zoomed `.tv-box` instead of being pinned to the
+     viewport-sized stage. */
   overflow: hidden;
   overflow: clip;
-  /* SVG clip-path traces the exact inner bezel edge with bezier curves
-     (like Photoshop's pen tool path masking). This replaces the crude
-     border-radius approximation so the content seamlessly fits the TV frame.
-     Border-radius kept as fallback for browsers without clip-path support. */
-  clip-path: url(#tv-screen-clip);
-  /* Subtle inner shadow blends the content edge with the bezel, hiding any
-     remaining anti-aliasing artifacts and preventing the "pasted-on" look. */
-  box-shadow: inset 0 0 2.5vmin rgba(0, 0, 0, 0.35);
+  -webkit-mask-image: var(--tube-mask);
+  mask-image: var(--tube-mask);
+  -webkit-mask-size: 100% 100%;
+  mask-size: 100% 100%;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+  /* Blend modes above this layer multiply/screen against the picture only. */
+  isolation: isolate;
+  /* A small radius stays alongside the mask: the two clip by intersection, so
+     this only ever touches the very corner pixels, and it is the whole of the
+     fallback if `mask-image` is unavailable. */
+  border-radius: 6% / 7%;
 }
 
 .tv-screen-base,
@@ -775,32 +793,6 @@ body {
   opacity: 1;
 }
 
-.tv-showreel::before,
-.tv-showreel::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: 1;
-  pointer-events: none;
-}
-
-.tv-showreel::before {
-  background: repeating-linear-gradient(to bottom, rgba(0, 0, 0, 0.24) 0, rgba(0, 0, 0, 0.24) 1px, transparent 1px, transparent 3px);
-  opacity: 0.6;
-}
-
-.tv-showreel::after {
-  z-index: 2;
-  background:
-    radial-gradient(ellipse at 16% 9%, rgba(255, 244, 218, 0.22), transparent 30%),
-    linear-gradient(103deg, transparent 58%, rgba(202, 255, 229, 0.14) 79%, transparent 88%),
-    linear-gradient(180deg, rgba(120, 160, 130, 0.1), rgba(40, 60, 50, 0.16)),
-    radial-gradient(ellipse at 50% 46%, transparent 46%, rgba(0, 0, 0, 0.18) 78%, rgba(0, 0, 0, 0.52) 112%),
-    /* Stronger edge darkening to blend with the bezel and hide clip-path seams. */
-    radial-gradient(ellipse at 50% 50%, transparent 50%, rgba(0, 0, 0, 0.15) 75%, rgba(0, 0, 0, 0.38) 100%);
-  box-shadow: inset 0 0 4.5vmin rgba(0, 0, 0, 0.55);
-}
-
 /* The project still sits *behind* curved glass: a dense, photographic
    image (no screen-blend lift) with the tube's scanlines, phosphor tint
    and edge falloff laid over it. */
@@ -810,7 +802,7 @@ body {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  filter: saturate(1.12) contrast(1.06) brightness(0.88);
+  filter: saturate(1.1) contrast(1.05) brightness(0.96);
   transform: scale(1.04);
   /* The channel change is choreographed in `ui/TvShowreel.tsx` (collapse →
      snow → re-lock); no CSS animation may touch transform/filter here, or the
@@ -900,38 +892,69 @@ body {
   will-change: opacity, transform;
 }
 
-/* Scanlines live on their own layer so the exit can strip the filter away
-   independently of the glass sheen: the stripes melt, the picture goes white,
-   and the contact section takes over from that white. */
+/* The raster: generated by `tv-tube.mjs` from the tube's own proportions, and
+   bowing with it (a parabola in x) so the frame reads as curved glass instead of
+   a flat plane behind a hole. Drawn above the picture (which GSAP collapses on
+   a channel change) but below the shading and reflections. */
 .tv-scanlines {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  background-image: var(--tube-scan);
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+  mix-blend-mode: multiply;
+  opacity: 0.85;
+}
+
+/* The glass's own shading — vignette, the dark rim under the bezel lip, the
+   corner falloff — lifted out of the photograph as a multiply layer. Because it
+   is the photo's own gradient, the injected frame sits in the same pool of light
+   the tube had before anything was drawn on it. */
+.tv-shade {
   position: absolute;
   inset: 0;
   z-index: 3;
   pointer-events: none;
-  background: repeating-linear-gradient(
-    to bottom,
-    rgba(0, 0, 0, 0.22) 0,
-    rgba(0, 0, 0, 0.22) 1px,
-    transparent 1px,
-    transparent 3px
-  );
+  background-image: var(--tube-shade);
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+  mix-blend-mode: multiply;
 }
 
-/* Persistent glass: sheen + edge falloff that never fade with the showreel,
-   so the powered-down tube keeps its material through the phone beat instead
-   of turning into a black hole. */
+/* …and what the glass was reflecting: the specular highlight and the reflected
+   street light that are already in the photo, screened back over the picture.
+   A reflection that does not move when the channel changes is the single
+   strongest cue that the picture is behind glass. */
+.tv-glint {
+  position: absolute;
+  inset: 0;
+  /* Above the snow and the rolling bar (5 / 6): a reflection belongs to the
+     glass, so it stays put while the picture underneath loses sync — which is
+     precisely the moment the illusion is easiest to spot. */
+  z-index: 7;
+  pointer-events: none;
+  background-image: var(--tube-glint);
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+  mix-blend-mode: screen;
+  opacity: 0.92;
+}
+
+/* Persistent glass: the sheen that survives the powered-down tube, so it keeps
+   its material through the phone beat instead of turning into a black hole.
+   The heavy edge falloff now lives in `.tv-shade` (it is the photograph's own),
+   so this layer only adds the surface: a light from above and one soft streak. */
 .tv-glass {
   position: absolute;
   inset: 0;
-  z-index: 4;
+  z-index: 6;
   pointer-events: none;
   background:
     radial-gradient(ellipse at 50% 0%, rgba(255, 252, 240, 0.1), transparent 42%),
-    linear-gradient(103deg, transparent 60%, rgba(202, 255, 229, 0.08) 80%, transparent 90%),
-    radial-gradient(ellipse at 50% 46%, transparent 52%, rgba(0, 0, 0, 0.22) 82%, rgba(0, 0, 0, 0.5) 115%),
-    /* Enhanced edge falloff: stronger darkening near the bezel to blend the
-       content seamlessly and hide any clip-path artifacts. */
-    radial-gradient(ellipse at 50% 50%, transparent 55%, rgba(0, 0, 0, 0.18) 78%, rgba(0, 0, 0, 0.42) 100%);
+    linear-gradient(103deg, transparent 60%, rgba(202, 255, 229, 0.07) 80%, transparent 90%);
+  mix-blend-mode: screen;
 }
 
 .tv-frame {
@@ -951,6 +974,16 @@ body {
   z-index: 3;
   container-type: inline-size;
   pointer-events: none;
+  /* The wordmark has to stay on the glass: same aperture as the tube, so it can
+     never spill onto the bezel while it swells through the exit. */
+  overflow: hidden;
+  overflow: clip;
+  -webkit-mask-image: var(--tube-mask);
+  mask-image: var(--tube-mask);
+  -webkit-mask-size: 100% 100%;
+  mask-size: 100% 100%;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
 }
 
 .tv-number {

@@ -92,6 +92,19 @@ export type PortfolioContent = {
       width: number;
       height: number;
       screen: ScreenRect;
+      /** Tuning for `scripts/tv-tube.mjs`; all values are % of `screen.width`. */
+      tube?: {
+        /** Luminance at which a pixel counts as lit glass rather than bezel. */
+        glow: number;
+        /** Width of the fade past the segmented glass edge. */
+        feather: number;
+        /** Extra growth, so the bright rim outside the phosphor is covered too. */
+        grow: number;
+        /** Corner radius of the aperture, in % of the glass's height. */
+        radius: number;
+        /** Band along the edge that is shaded rather than reflected. */
+        band: number;
+      };
     };
     items: Work[];
   };

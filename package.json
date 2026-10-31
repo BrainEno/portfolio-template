@@ -9,11 +9,11 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "art": "node scripts/art/generate-art.mjs",
-    "tv-glass": "node scripts/tv-glass.mjs",
+    "tv-tube": "node scripts/tv-tube.mjs",
     "preview": "node scripts/preview.mjs",
     "images": "node scripts/build-images.mjs",
-    "predev": "npm run images",
-    "prebuild": "npm run images",
+    "predev": "npm run images && npm run tv-tube",
+    "prebuild": "npm run images && npm run tv-tube",
     "smoke": "node scripts/smoke.mjs"
   },
   "dependencies": {
