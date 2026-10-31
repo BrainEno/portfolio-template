@@ -30,10 +30,10 @@ const H = 1707;
 // Glass rectangle of the *placeholder* cabinet, in the same percentages the
 // content uses (`src/portfolio/content/defaults.ts` → `works.tv.screen`).
 // They must agree: if this artwork is ever seeded as `tv.webp` (a fresh clone
-// with no photo), the picture overlay is positioned from those percentages, so
-// a placeholder with the glass somewhere else would look broken.
-// Defaults today: { top: 57.18, left: 43.45, width: 12.9688, height: 15.8781 }.
-const glass = { x: 0.4345 * W, y: 0.5718 * H, w: 0.129688 * W, h: 0.158781 * H };
+// with no photo), the tube optics are generated from those percentages, so a
+// placeholder with the glass somewhere else would look broken.
+// Defaults today: { top: 57.704, left: 43.828, width: 12.422, height: 15.407 }.
+const glass = { x: 0.43828 * W, y: 0.57704 * H, w: 0.12422 * W, h: 0.15407 * H };
 
 const grain = (w, h, count, color) =>
   Array.from({ length: count }, (_, i) => {

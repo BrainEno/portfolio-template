@@ -83,18 +83,20 @@ export const defaultContent: PortfolioContent = {
       src: "/images/tv.webp",
       width: 2560,
       height: 1707,
-      // Glass bounds of `tv.webp` (2560x1707), measured from the photo's
-      // gradients: the lit tube runs x 1124-1440 / y 986-1248. The rect is
-      // grown ~12px on every side so it can never be *smaller* than the glass —
-      // a sliver of the photo's own screen beside the picture is the one thing
-      // that reads as broken during the zoom. The bleed lands on the dark
-      // inner bezel, so it costs nothing visibly and absorbs the tube's curved
-      // corners, which a rectangle cannot follow.
+      // Glass opening of `tv.webp` (2560x1707), measured from the photo's
+      // gradients: the tube runs x 1122-1440 / y 985-1248. This rect is the
+      // *glass itself*, nothing else — the visible boundary of the picture is
+      // not this rectangle but a feathered mask generated from it
+      // (`scripts/tv-glass.mjs`), which is what lets the picture die away over
+      // the tube's curved dark edge instead of ending on a hard clip line.
       //
-      // The CRT picture is layered *above* the artwork (see .tv-screen in
-      // portfolio.css), which is what lets it render at full brightness; this
-      // rect is therefore the visible boundary and needs to be right.
-      screen: { top: 57.18, left: 43.45, width: 12.9688, height: 15.8781 },
+      // The script also grows the DOM rectangle by a fixed bleed (so it can
+      // never be smaller than the glass), derives the scene's vignette and
+      // reflections from the photo into multiply/screen layers, and writes the
+      // results to `tv-glass-manifest.json`, which the works section imports.
+      // After editing this rect, run `npm run tv-glass` (predev/prebuild do
+      // it for you) and eyeball the result with `npm run tv-glass -- --check`.
+      screen: { top: 57.704, left: 43.828, width: 12.422, height: 15.407 },
     },
     items: [
       // Five repositories with the highest 2026 commit counts on github.com/BrainEno

@@ -1,0 +1,19 @@
+{
+  "generator": "scripts/tv-glass.mjs",
+  "photo": {
+    "src": "/images/tv.webp",
+    "width": 2560,
+    "height": 1707
+  },
+  "screen": {
+    "top": 56.239,
+    "left": 42.8516,
+    "width": 14.375,
+    "height": 18.3363
+  },
+  "assets": {
+    "mask": "/images/tv-glass/mask.d87a9f3f.png",
+    "shade": "/images/tv-glass/shade.d87a9f3f.webp",
+    "sheen": "/images/tv-glass/sheen.d87a9f3f.webp"
+  }
+}

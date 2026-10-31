@@ -1,5 +1,15 @@
 # 架构说明与本轮重构记录
 
+## 本轮重构记录（第十一轮，2026-10-31）
+
+**电视画面从「贴图」变成「玻璃里的播出画面」**。旧实现用 SVG `clip-path` 把矩形硬切进玻璃：
+矩形与照片玻璃开口对不齐（四周露出照片自带的屏幕边）、边缘是硬线（zoom 时尤其明显）、画面
+完全不吃照片里的暗角/弧面反射/亮斑——三处穿帮合起来就是「一块平的贴图」。现在改为照片衍生
+的光学管线（`scripts/tv-glass.mjs`，详见 §5「电视图的分层」）：羽化蒙版决定可见边界、
+multiply 暗角 + screen 反光让画面穿上现场光；手量矩形只作玻璃实测输入，布局用的外扩矩形与
+三张光学层全部生成进提交仓库的 `tv-glass-manifest.json`。假暗角 CSS（`.tv-showreel::after`
+的重叠 radial-gradient + inset box-shadow）与 SVG clipPath 已删除。
+
 ## 1. 形态：只有静态导出
 
 站点现在**只有一种形态**：`npm run build:static` 产出 `out/`，任何静态托管都能跑。
@@ -89,12 +99,21 @@ Hero、肖像（含重影层）、画廊、两张点缀图、电视封面、作�
 3. 清单是提交进仓库的生成物，脚本按 mtime 增量跳过，几十毫秒就跑完。
 
 **电视图的分层**：`tv.webp` 只负责**机柜**，屏幕里的画面是盖在它**上面**的一层
-DOM（`.tv-screen` 等，`z-index` 高于 `.tv-frame`），位置来自 `works.tv.screen` 的百分比矩形。
+DOM（`.tv-screen` 等，`z-index` 高于 `.tv-frame`）。
 早期版本反过来：机柜图压在最上层并带 `mix-blend-mode: darken`，靠插画里那块**近白**玻璃
 让下面的画面透出来。照片的玻璃是暗的，`darken` 会把画面亮度按像素压到照片的亮度（实测灰底
 255 的画面只能到 95/255，扫描线基本看不见），所以换照片后必须把顺序反过来。
-代价是矩形要**量准**：它是可见边界，偏一点就会露出照片自带的屏幕或压到边框。
-`npm run tv-glass` 负责把矩形画出来核对。
+
+**可见边界不是矩形，是从照片生成的玻璃光学**（`scripts/tv-glass.mjs` → `tv-glass-manifest.json`）：
+手量的 `works.tv.screen` 只是玻璃开口的实测矩形，DOM 用的矩形是它**外扩一圈 bleed**（宁可压到
+深色内边框，也绝不能小于玻璃）；画面真正在哪里结束，由一张**带羽化的 alpha 蒙版**决定——蒙版按
+玻璃的圆角矩形描出来再高斯羽化，衰减段正好落在照片自带的弧面暗边上，所以缩放/旋转时看不到
+任何硬边。同一脚本还从照片玻璃区抽出**低频亮度**（暗角、不均匀的荧光辉度）做成 multiply 层
+`.tv-shade`、把**正向高频残差**（反射、亮斑）做成 screen 层 `.tv-sheen`——画面穿上了照片里
+那块玻璃的现场光，而不是一层通用 CSS 渐变。早期用 SVG `clip-path` 硬切 + CSS inset 阴影假暗角
+的做法已删除：那圈假暗角恰恰制造了「画面没顶到玻璃」的空隙感。
+`npm run tv-glass` 重新生成；`npm run tv-glass -- --check` 把实测矩形（红）与布局矩形（蓝）画到
+照片上核对。`predev`/`prebuild`（经 `npm run images`）自动重跑，换照片后无需手动。
 
 ## 6. 转场与 Contact 区动效
 
@@ -102,7 +121,8 @@ DOM（`.tv-screen` 等，`z-index` 高于 `.tv-frame`），位置来自 `works.t
 退场的每一拍都是重叠的，中间没有「停住的白屏」：
 
 1. `@BrainEno` 字样放大（模拟镜头推进）并虚化消失；
-2. 独立的 `.tv-scanlines` 条纹层与 `.tv-glass` 光泽层同时淡出（条纹滤镜「消失」）；
+2. 独立的 `.tv-scanlines` 条纹层与 `.tv-optics` 光学层（`.tv-glass` 环境光 + `.tv-shade`/
+   `.tv-sheen` 照片光学）同时淡出（条纹滤镜「消失」）；
 3. `.tv-box` 用 30% 的退场距离推进到 `scale 5.6`（约 270px 滚动，一次滚轮不会跳帧），屏幕渐变在推进过程中就切成纯白，
    `.tv-whiteout` 紧随其后——看到的是「从电视里膨胀出来的白色闪光」，而不是一块灰色屏幕。
 4. `.contact` 的 `margin-top: -56vh`（移动端 `-40vh`）让它压进退场段：它的背景色由 `rgba(255,255,255,0)` 淡入成白色，
@@ -181,9 +201,12 @@ DOM（`.tv-screen` 等，`z-index` 高于 `.tv-frame`），位置来自 `works.t
 
 - 内容改动没有图形界面：`published.json` 是 JSON，字段含义见 `docs/QUICKSTART.md` 与 `content/types.ts`。
 - 电视机默认是矢量原创插画（`tv-placeholder.webp` 的源），可以直接用**你自己的照片**替换
-  `public/images/tv.webp`；但画面是盖在照片**之上**的，所以照片里玻璃的位置必须写进
-  `works.tv.screen`（`tv.webp` 上的百分比矩形）。`npm run tv-glass` 会把这个矩形画出来，
-  肉眼对齐后把像素换算成百分比写回。照片比例换得狠时，`160vw / 230vh` 的锚定尺寸也要复核。
+  `public/images/tv.webp`；但画面是盖在照片**之上**的，所以照片里玻璃开口的位置必须写进
+  `works.tv.screen`（`tv.webp` 上的百分比矩形，量的是**玻璃本身**）。写回后跑一次
+  `npm run tv-glass`（`predev`/`prebuild` 也会自动跑）：蒙版、暗角、反光三张光学层与
+  `tv-glass-manifest.json` 都会按新照片重新生成，运行时用的外扩矩形也从这里来——
+  不需要再手算 bleed。核对矩形用 `npm run tv-glass -- --check`。
+  照片比例换得狠时，`160vw / 230vh` 的锚定尺寸也要复核。
   电话亭为上传的 glTF 模型。
 - 仓库同时保留原始 `telephone.gltf`（38 MB，在 `assets/models/`）与优化后的 `.glb`（2.15 MB，在 `public/gltfs/`），
   只有 `.glb` 参与运行时加载。源文件**必须**留在 `public/` 之外：`public/` 会被原样拷进 `out/`，
