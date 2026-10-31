@@ -38,8 +38,10 @@ function coerce(template: Json, input: Json, path: string): Json {
     }
     // Forward-compatible: keep keys that exist in stored data but not in the
     // template yet, so a newer client never loses fields on a round-trip.
+    // This includes nested objects (like `video`) so future field additions
+    // survive even when the template hasn't caught up.
     for (const key of Object.keys(source)) {
-      if (!(key in out) && typeof source[key] !== "object") out[key] = source[key];
+      if (!(key in out)) out[key] = source[key];
     }
     return out;
   }

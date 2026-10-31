@@ -180,12 +180,22 @@ export function Works({ lang, content, phone, activeIndex, onPreview }: WorksPro
           <div className="tv-box">
             <div className={cx("tv-screen", active && "has-preview")}>
               <div className="tv-screen-base" />
-              <div className="tv-showreel">
-                <TvShowreel
-                  active={active ? { id: active.id, src: active.image.src, alt: active.image.alt } : null}
-                  label={(text) => t(text, lang)}
-                />
-              </div>
+            <div className="tv-showreel">
+              <TvShowreel
+                active={
+                  active
+                    ? {
+                        id: active.id,
+                        src: active.image.src,
+                        alt: active.image.alt,
+                        videoSrc: active.video?.src,
+                        videoPoster: active.video?.poster,
+                      }
+                    : null
+                }
+                label={(text) => t(text, lang)}
+              />
+            </div>
               <div className="tv-scanlines" aria-hidden="true" />
               <div className="tv-glass" aria-hidden="true" />
             </div>

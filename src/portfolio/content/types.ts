@@ -19,6 +19,16 @@ export type MediaImage = {
   alt: LocalizedText;
 };
 
+/**
+ * Video for the TV screen.
+ * - `src`: the video URL (mp4 / webm)
+ * - `poster`: thumbnail shown before playback (falls back to the work's `image`)
+ */
+export type Video = {
+  src: string;
+  poster?: string;
+};
+
 export type Work = {
   id: string;
   title: LocalizedText;
@@ -26,8 +36,14 @@ export type Work = {
   year: string;
   /** Stack / venue shown after the separator. */
   credit: LocalizedText;
-  /** Still shown inside the television. */
+  /** Still shown inside the television when the work is not a video. */
   image: MediaImage;
+  /**
+   * Optional video shown on the TV screen instead of `image`.
+   * When present, the TV displays the poster (or `image` as fallback) until
+   * the user clicks to play. `preload="metadata"` — never auto-plays.
+   */
+  video?: Video;
   /** Repository / live project link (data only — the index layout is unchanged). */
   url: string;
   /** Long-form project description, used by detail views and backups. */
