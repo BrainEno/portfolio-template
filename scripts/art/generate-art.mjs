@@ -27,13 +27,10 @@ mkdirSync(iconsOut, { recursive: true });
 
 const W = 2560;
 const H = 1707;
-// Glass rectangle of the *placeholder* cabinet, in the same percentages the
-// content uses (`src/portfolio/content/defaults.ts` → `works.tv.screen`).
-// They must agree: if this artwork is ever seeded as `tv.webp` (a fresh clone
-// with no photo), the picture overlay is positioned from those percentages, so
-// a placeholder with the glass somewhere else would look broken.
-// Defaults today: { top: 57.18, left: 43.45, width: 12.9688, height: 15.8781 }.
-const glass = { x: 0.4345 * W, y: 0.5718 * H, w: 0.129688 * W, h: 0.158781 * H };
+// Picture rectangle from works.tv.screen. A generated placeholder can replace
+// the idle photo, but live previews also need a matching alpha-cut cabinet;
+// the supplied tv-alpha.webp is specific to the supplied photographic tv.webp.
+const glass = { x: 0.4264 * W, y: 0.5713 * H, w: 0.138 * W, h: 0.166 * H };
 
 const grain = (w, h, count, color) =>
   Array.from({ length: count }, (_, i) => {
@@ -221,7 +218,10 @@ const palettes = [
   ["#26231c", "#171511", "#0b0a08"],
 ];
 for (let i = 1; i <= 5; i++) {
-  await renderCard(path.join(out, `tree${i}.jpg`), 1200, 900, `ARCHIVE 0${i}`, "ATMOSPHERE & NATURE", palettes[i - 1]);
+  const target = path.join(out, `tree${i}.jpg`);
+  // tree1/2 may be authored replacements (legacy URLs); never overwrite them.
+  if (i <= 2 && existsSync(target)) continue;
+  await renderCard(target, 1200, 900, `ARCHIVE 0${i}`, "ATMOSPHERE & NATURE", palettes[i - 1]);
 }
 await renderCard(path.join(out, "accent-1.jpg"), 900, 1200, "ACCENT I", "PERFORMANCE STILL", ["#2d1b18", "#1a0f0d", "#0d0806"]);
 await renderCard(path.join(out, "accent-2.jpg"), 900, 1200, "ACCENT II", "SHOWCASE STILL", ["#182324", "#0e1516", "#070a0b"]);
