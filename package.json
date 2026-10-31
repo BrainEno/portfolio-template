@@ -40,5 +40,19 @@
   },
   "engines": {
     "node": ">=20"
-  }
+  },
+  "license": "SEE LICENSE IN LICENSE",
+  "author": {
+    "name": "BrainEno",
+    "email": "nodeman24@outlook.com",
+    "url": "https://github.com/BrainEno"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/BrainEno/portfolio-template"
+  },
+  "bugs": {
+    "url": "https://github.com/BrainEno/portfolio-template/issues"
+  },
+  "homepage": "https://github.com/BrainEno/portfolio-template#readme"
 }

@@ -8,6 +8,30 @@
 
 技术栈：Next.js 16（App Router，`output: "export"`）· React 19 · TypeScript · GSAP（ScrollTrigger + ScrollSmoother）· three.js · 自托管字体（`@fontsource`）。
 
+---
+
+## ⚠️ 版权与许可声明
+
+**本项目不是开源软件。保留所有权利。**
+
+### 核心条款
+
+- 🚫 **禁止**未经书面授权复制、修改、分发或使用本项目的代码、设计和内容
+- 🚫 **禁止**将本项目用于任何商业目的或其他网站
+- 🚫 **禁止**转载网站上的任何原创内容
+- ✅ **允许**在 GitHub 上查看代码用于个人学习
+- ✅ **允许**Fork 仓库用于学习参考（不得用于生产环境）
+- ✅ **允许**引用和链接本项目（需注明出处）
+
+如需授权，请联系：**nodeman24@outlook.com**
+
+详细条款请参阅：
+- [LICENSE](./LICENSE) — 版权许可与使用限制
+- [TERMS.md](./TERMS.md) — 使用条款与版权声明
+- [CONTRIBUTING.md](./CONTRIBUTING.md) — 贡献指南
+
+---
+
 ## 30 秒跑起来
 
 ```bash
