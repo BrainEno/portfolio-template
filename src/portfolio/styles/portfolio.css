@@ -713,7 +713,24 @@ body {
   will-change: transform;
 }
 
-.tv-screen,
+/* Geometry. `--screen-*` is the measured glass of tv.webp (defaults.ts), in
+   percent of the artwork. The picture box is outset from the glass by a few
+   photo pixels into the dark gap around the tube:
+     left  −4px  (−0.16%)   top    −2px (−0.12%)
+     right +3px  (+0.12%)   bottom +3.4px (+0.20%)
+   The gap is at least that wide everywhere (right gap ≈3–4px, top ≈6px, left
+   and bottom ≈30px), so the outset never reaches the chrome. The photo's own
+   bezel (.tv-frame, masked below) covers the outset, so the picture reads as
+   sitting *behind* the glass. No border-radius here: the shape comes from the
+   photo's hole, not from a rounded box. */
+.tv-screen {
+  position: absolute;
+  top: calc(var(--screen-top) - 0.12%);
+  left: calc(var(--screen-left) - 0.16%);
+  width: calc(var(--screen-width) + 0.28%);
+  height: calc(var(--screen-height) + 0.32%);
+}
+
 .tv-number-layer {
   position: absolute;
   top: var(--screen-top);
@@ -721,33 +738,65 @@ body {
   width: var(--screen-width);
   height: var(--screen-height);
   overflow: hidden;
-  border-radius: 9% 7% 8% 10% / 9% 8% 9% 10%;
 }
 
 .tv-screen {
-  /* Above `.tv-frame` on purpose. The artwork used to sit on top with a
-     `darken` blend so its (near-white) vector glass let the picture through —
-     a photo's glass is much darker, and `darken` would cap every still at its
-     ~96/255 luminance, i.e. a murky tube. Layering the screen above the
-     artwork means the picture renders at its own brightness and the photo only
-     supplies the cabinet; the glass rectangle (`.works.tv.screen`) is the
-     visible boundary, which is why it is measured rather than guessed. */
-  z-index: 2;
-  background: #020202;
+  /* Below `.tv-frame` (z 2). The picture is the *lower* layer and the photo's
+     own bezel is the *upper* one: the frame is opaque everywhere except the
+     glass hole, so any sub-pixel mismatch between the picture and the glass
+     lands under the cabinet instead of on top of it. That is the whole fix for
+     the "pasted sticker" look: the edge the eye reads is the photo's edge.
+
+     The black level is lifted to `--tv-black` (not #020202): a real tube with
+     a black picture still shows a faint glass glow, and pure black reads as a
+     hole in the photo. */
+  --tv-black: rgb(8, 12, 10);
+  --tv-tint: 0.2;
+  --tv-reflect: 0.8;
+  z-index: 1;
+  background: var(--tv-black);
   transform: translateZ(0);
   /* `clip` (unlike `hidden`) does not force a scroll container, so the
      screen crop still travels with the zoomed `.tv-box` instead of being
      pinned to the viewport-sized stage. */
   overflow: hidden;
   overflow: clip;
-  /* SVG clip-path traces the exact inner bezel edge with bezier curves
-     (like Photoshop's pen tool path masking). This replaces the crude
-     border-radius approximation so the content seamlessly fits the TV frame.
-     Border-radius kept as fallback for browsers without clip-path support. */
-  clip-path: url(#tv-screen-clip);
-  /* Subtle inner shadow blends the content edge with the bezel, hiding any
-     remaining anti-aliasing artifacts and preventing the "pasted-on" look. */
+  /* Subtle inner shadow: the tube's curvature falling off towards the bezel. */
   box-shadow: inset 0 0 2.5vmin rgba(0, 0, 0, 0.35);
+}
+
+/* Lighting layers that sit on the picture (see .tv-screen). Tint multiplies in
+   the room's colour cast (warm left, green right, sampled from the photo's own
+   glass) so the picture takes on the same ambient light as the cabinet. It
+   changes hue, not brightness, and only touches the picture — snow and the
+   roll sit above it. */
+.tv-tint {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  mix-blend-mode: multiply;
+  opacity: var(--tv-tint);
+  background: linear-gradient(90deg, rgb(255, 214, 170) 0%, rgb(236, 246, 214) 55%, rgb(196, 236, 208) 100%);
+}
+
+/* Reflections: only the three real highlights on the photo's glass (lamp at
+   ≈(30.7%, 31.6%), streak at ≈(44.5%, 43.5%), green-white bar at ≈(93.2%,
+   39.1%) of the picture box). Tight radial spots, not a full-tube sheen, so
+   the rest of the glass stays a self-lit picture. Above snow/roll on purpose:
+   a reflection belongs to the glass, so it must not move during a channel
+   change. */
+.tv-reflect {
+  position: absolute;
+  inset: 0;
+  z-index: 7;
+  pointer-events: none;
+  mix-blend-mode: screen;
+  opacity: var(--tv-reflect);
+  background:
+    radial-gradient(circle at 30.7% 31.6%, rgba(255, 252, 240, 0.55) 0, rgba(255, 252, 240, 0) 3.2%),
+    radial-gradient(ellipse at 44.5% 43.5% , rgba(230, 255, 240, 0.32) 0, rgba(230, 255, 240, 0) 5.5%),
+    radial-gradient(ellipse at 93.2% 39.1%, rgba(214, 255, 226, 0.42) 0, rgba(214, 255, 226, 0) 4.2%);
 }
 
 .tv-screen-base,
@@ -757,13 +806,13 @@ body {
 }
 
 .tv-screen-base {
-  --screen-top: #777a76;
-  --screen-mid: #626560;
-  --screen-bottom: #545651;
-  --screen-glow: rgba(255, 255, 255, 0.08);
+  --base-top: #777a76;
+  --base-mid: #626560;
+  --base-bottom: #545651;
+  --base-glow: rgba(255, 255, 255, 0.08);
   background:
-    radial-gradient(circle at 48% 42%, var(--screen-glow), transparent 46%),
-    linear-gradient(180deg, var(--screen-top) 0%, var(--screen-mid) 54%, var(--screen-bottom) 100%);
+    radial-gradient(circle at 48% 42%, var(--base-glow), transparent 46%),
+    linear-gradient(180deg, var(--base-top) 0%, var(--base-mid) 54%, var(--base-bottom) 100%);
 }
 
 .tv-showreel {
@@ -937,14 +986,26 @@ body {
 .tv-frame {
   position: absolute;
   inset: 0;
-  /* Below the screen (see `.tv-screen`): no blend mode, because there is
-     nothing left for it to do — the artwork's job is the cabinet, the tube is
-     the picture's job. */
-  z-index: 1;
+  /* Above the screen (z 2 > z 1): the photo *is* the bezel. Its glass area is
+     cut out by `mask-image` (the SVG below, viewBox = tv.webp 2560×1707 so
+     the coordinates are photo pixels), leaving the cabinet opaque everywhere
+     else. The hole is the measured glass plus ~1px, so every bright photo
+     pixel of the tube is removed and the seam is painted by the picture
+     underneath. The 0.6px blur feathers the hole edge across ~1–2 device px.
+     Corners follow the real tube: the left edge bows out to x≈1097 at mid
+     height and the corners are rounded (r≈26). Right edge 1433, top 986,
+     bottom 1248. */
+  z-index: 2;
   width: 100%;
   height: 100%;
   object-fit: cover;
   pointer-events: none;
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 2560 1707' preserveAspectRatio='none'%3E%3Cfilter id='f' x='-5%25' y='-5%25' width='110%25' height='110%25'%3E%3CfeGaussianBlur stdDeviation='0.6'/%3E%3C/filter%3E%3Cpath filter='url(%23f)' fill='black' fill-rule='evenodd' d='M0 0H2560V1707H0Z M1122 986H1411Q1433 986 1433 1008V1226Q1433 1248 1411 1248H1122Q1073 1117 1122 986Z'/%3E%3C/svg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 2560 1707' preserveAspectRatio='none'%3E%3Cfilter id='f' x='-5%25' y='-5%25' width='110%25' height='110%25'%3E%3CfeGaussianBlur stdDeviation='0.6'/%3E%3C/filter%3E%3Cpath filter='url(%23f)' fill='black' fill-rule='evenodd' d='M0 0H2560V1707H0Z M1122 986H1411Q1433 986 1433 1008V1226Q1433 1248 1411 1248H1122Q1073 1117 1122 986Z'/%3E%3C/svg%3E");
+  -webkit-mask-size: 100% 100%;
+  mask-size: 100% 100%;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
 }
 
 .tv-number-layer {

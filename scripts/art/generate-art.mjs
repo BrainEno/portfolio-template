@@ -33,7 +33,8 @@ const H = 1707;
 // with no photo), the picture overlay is positioned from those percentages, so
 // a placeholder with the glass somewhere else would look broken.
 // Defaults today: { top: 57.18, left: 43.45, width: 12.9688, height: 15.8781 }.
-const glass = { x: 0.4345 * W, y: 0.5718 * H, w: 0.129688 * W, h: 0.158781 * H };
+// Kept in lockstep with `works.tv.screen` (defaults.ts): measured glass, not padded.
+const glass = { x: 0.4297 * W, y: 0.577 * H, w: 0.1297 * W, h: 0.1541 * H };
 
 const grain = (w, h, count, color) =>
   Array.from({ length: count }, (_, i) => {

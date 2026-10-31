@@ -83,18 +83,16 @@ export const defaultContent: PortfolioContent = {
       src: "/images/tv.webp",
       width: 2560,
       height: 1707,
-      // Glass bounds of `tv.webp` (2560x1707), measured from the photo's
-      // gradients: the lit tube runs x 1124-1440 / y 986-1248. The rect is
-      // grown ~12px on every side so it can never be *smaller* than the glass —
-      // a sliver of the photo's own screen beside the picture is the one thing
-      // that reads as broken during the zoom. The bleed lands on the dark
-      // inner bezel, so it costs nothing visibly and absorbs the tube's curved
-      // corners, which a rectangle cannot follow.
-      //
-      // The CRT picture is layered *above* the artwork (see .tv-screen in
-      // portfolio.css), which is what lets it render at full brightness; this
-      // rect is therefore the visible boundary and needs to be right.
-      screen: { top: 57.18, left: 43.45, width: 12.9688, height: 15.8781 },
+      // Glass bounds of `tv.webp` (2560x1707), measured per row / per column
+      // on the native file (luminance step between the lit tube and the dark
+      // inner bezel): x ≈ 1097–1432 (the left edge bows out to ≈1097 at mid
+      // height, ≈1120 at the corners), y ≈ 986–1248. This rect is the *glass*,
+      // not a padded guess: the CSS `.tv-screen` box is outset by a few photo
+      // pixels into the dark gap, and the photo's own bezel (`.tv-frame`, drawn
+      // above the picture with a glass-shaped hole in it) covers the seam.
+      // Camera zoom (choreography.ts) is anchored on this rect's centre, so it
+      // must stay the real glass.
+      screen: { top: 57.70, left: 42.97, width: 12.97, height: 15.41 },
     },
     items: [
       // Five repositories with the highest 2026 commit counts on github.com/BrainEno

@@ -253,15 +253,15 @@ function journeyMobile(scope: HTMLElement) {
 }
 
 const SCREEN = {
-  idle: { "--screen-top": "#777a76", "--screen-mid": "#626560", "--screen-bottom": "#545651", "--screen-glow": "rgba(255,255,255,0.08)" },
-  phone: { "--screen-top": "#5d6159", "--screen-mid": "#4d514a", "--screen-bottom": "#3c403a", "--screen-glow": "rgba(255,255,255,0.06)" },
+  idle: { "--base-top": "#777a76", "--base-mid": "#626560", "--base-bottom": "#545651", "--base-glow": "rgba(255,255,255,0.08)" },
+  phone: { "--base-top": "#5d6159", "--base-mid": "#4d514a", "--base-bottom": "#3c403a", "--base-glow": "rgba(255,255,255,0.06)" },
   // Powered-down tube: a dark phosphor with visible glass texture, never a
   // flat black hole. The gradient and glass streaks stay alive through the
   // exit zoom so the screen keeps the same material as the opening frame.
-  blank: { "--screen-top": "#2b2f29", "--screen-mid": "#1b1e1a", "--screen-bottom": "#0f1110", "--screen-glow": "rgba(190,230,200,0.05)" },
+  blank: { "--base-top": "#2b2f29", "--base-mid": "#1b1e1a", "--base-bottom": "#0f1110", "--base-glow": "rgba(190,230,200,0.05)" },
   // The tube burns out to paper white right before the contact sheet takes
   // over, so the next section rises out of the same white the screen becomes.
-  white: { "--screen-top": "#ffffff", "--screen-mid": "#ffffff", "--screen-bottom": "#fbfaf8", "--screen-glow": "rgba(255,255,255,0.9)" },
+  white: { "--base-top": "#ffffff", "--base-mid": "#ffffff", "--base-bottom": "#fbfaf8", "--base-glow": "rgba(255,255,255,0.9)" },
 } as const;
 
 type TvPhase = "rows" | "phone" | "exit";

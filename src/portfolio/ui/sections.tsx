@@ -161,20 +161,10 @@ export function Works({ lang, content, phone, activeIndex, onPreview }: WorksPro
 
   return (
     <section id="works" className="works" aria-label={t(content.heading, lang)}>
-      {/* SVG clip-path that traces the exact inner bezel edge of the TV screen.
-          This replaces the crude border-radius approximation with a precise path
-          (like Photoshop's pen tool), so the content seamlessly fits inside the
-          TV frame even when zoomed and rotated. */}
-      <svg width="0" height="0" style={{ position: "absolute" }} aria-hidden="true">
-        <defs>
-          <clipPath id="tv-screen-clip" clipPathUnits="objectBoundingBox">
-            {/* Rounded rectangle with bezier curves matching the actual bezel opening.
-                Corner radii: TL 9%/9%, TR 7%/8%, BR 8%/9%, BL 10%/10%.
-                Bezier approximation factor: 0.5523 for smooth quarter-circle arcs. */}
-            <path d="M 0.09 0 L 0.93 0 C 0.93 0.0442, 0.9687 0.08, 1 0.08 L 1 0.91 C 1 0.9597, 0.9558 1, 0.92 1 L 0.10 1 C 0.0448 1, 0 0.9552, 0 0.90 L 0 0.09 C 0 0.0403, 0.0497 0, 0.09 0 Z" />
-          </clipPath>
-        </defs>
-      </svg>
+      {/* The glass shape is no longer approximated here. The photo itself is the
+          bezel: `.tv-frame` is drawn above the picture with a hole cut to the
+          measured glass (see portfolio.css), so the screen's edge is the
+          photo's own edge. The old clip-path SVG was a guessed shape. */}
       <div className="tv-stage">
         <div className="tv-anchor" style={tvStyle}>
           <div className="tv-box">
@@ -196,8 +186,14 @@ export function Works({ lang, content, phone, activeIndex, onPreview }: WorksPro
                 label={(text) => t(text, lang)}
               />
             </div>
+              {/* Lighting, bottom to top: scanlines → tint (the room's colour cast
+                  on the picture) → glass shading → reflections (the three real
+                  highlights on the photo's glass). Reflections sit above the
+                  snow and roll, so a channel change never moves them. */}
               <div className="tv-scanlines" aria-hidden="true" />
+              <div className="tv-tint" aria-hidden="true" />
               <div className="tv-glass" aria-hidden="true" />
+              <div className="tv-reflect" aria-hidden="true" />
             </div>
             {/* Below the fold: no `<link rel=preload>` for artwork nobody has
                 scrolled to yet.
