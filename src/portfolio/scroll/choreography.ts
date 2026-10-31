@@ -252,18 +252,6 @@ function journeyMobile(scope: HTMLElement) {
   }
 }
 
-const SCREEN = {
-  idle: { "--screen-top": "#777a76", "--screen-mid": "#626560", "--screen-bottom": "#545651", "--screen-glow": "rgba(255,255,255,0.08)" },
-  phone: { "--screen-top": "#5d6159", "--screen-mid": "#4d514a", "--screen-bottom": "#3c403a", "--screen-glow": "rgba(255,255,255,0.06)" },
-  // Powered-down tube: a dark phosphor with visible glass texture, never a
-  // flat black hole. The gradient and glass streaks stay alive through the
-  // exit zoom so the screen keeps the same material as the opening frame.
-  blank: { "--screen-top": "#2b2f29", "--screen-mid": "#1b1e1a", "--screen-bottom": "#0f1110", "--screen-glow": "rgba(190,230,200,0.05)" },
-  // The tube burns out to paper white right before the contact sheet takes
-  // over, so the next section rises out of the same white the screen becomes.
-  white: { "--screen-top": "#ffffff", "--screen-mid": "#ffffff", "--screen-bottom": "#fbfaf8", "--screen-glow": "rgba(255,255,255,0.9)" },
-} as const;
-
 type TvPhase = "rows" | "phone" | "exit";
 
 function television(scope: HTMLElement, opts: ChoreographyOptions, desktop: boolean) {
@@ -315,7 +303,9 @@ function television(scope: HTMLElement, opts: ChoreographyOptions, desktop: bool
       start: desktop ? "top 58%" : "top 62%",
       end: desktop ? "bottom 58%" : "bottom 62%",
       onToggle: (self) => {
-        if (self.isActive && phase === "rows") opts.onWork(index);
+        // Coarse pointers have no hover; scrolling selects a work on touch.
+        // A mouse must actually hover (or focus) a row to switch the set on.
+        if (self.isActive && phase === "rows" && !window.matchMedia("(hover: hover) and (pointer: fine)").matches) opts.onWork(index);
       },
     });
   });
@@ -337,15 +327,13 @@ function television(scope: HTMLElement, opts: ChoreographyOptions, desktop: bool
       },
       onLeaveBack: () => {
         setPhase("rows");
-        opts.onWork(opts.lastWork());
+        if (!window.matchMedia("(hover: hover) and (pointer: fine)").matches) opts.onWork(opts.lastWork());
       },
     },
   });
 
   phoneTl
-    .to(".tv-showreel", { autoAlpha: 0, duration: 0.08 }, 0)
     .to(".tv-box", { scale: 1.14, rotation: -1.5, duration: 0.34, ease: "sine.inOut" }, 0)
-    .to(".tv-screen-base", { ...SCREEN.phone, duration: 0.2 }, 0.06)
     .fromTo(
       ".tv-number",
       { autoAlpha: 0, yPercent: 18, filter: "blur(6px)" },
@@ -366,26 +354,13 @@ function television(scope: HTMLElement, opts: ChoreographyOptions, desktop: bool
     },
   });
 
-  // Exit, in four overlapping beats so there is never a still white screen:
-  //   1. the wordmark swells (a camera push into the glass) and blurs away,
-  //   2. the stripe filter and the glass sheen melt off the tube,
-  //   3. the tube burns out to white while the box is still pushing in,
-  //   4. the contact sheet's white background fades in under the copy, which
-  //      is already rising out of the bottom edge of the frame.
-  // Everything is scroll-scrubbed, so scrolling back up rewinds it exactly.
+  // The unmodified photo is back by this point. Enlarge the wordmark on its
+  // glass, then fade the entire image to white as contact rises underneath.
   exitTl
-    .to(".tv-screen-base", { ...SCREEN.blank, duration: 0.08 }, 0)
     .to(".tv-number", { scale: desktop ? 4.8 : 3.2, duration: 0.26, ease: "power2.in" }, 0)
     .to(".tv-number", { autoAlpha: 0, filter: "blur(16px)", duration: 0.18, ease: "power1.in" }, 0.06)
-    .to(".tv-scanlines", { autoAlpha: 0, duration: 0.16, ease: "power1.inOut" }, 0.04)
-    // The glass goes first so the burn-out is clean white, not a grey tube.
-    .to(".tv-glass", { autoAlpha: 0, duration: 0.14, ease: "power1.in" }, 0.02)
     .to(".tv-box", { scale: 1.2, rotation: -2.5, duration: 0.12, ease: "sine.inOut" }, 0.06)
-    // The push runs over a quarter of the exit (~270px of scroll) so a single
-    // wheel tick cannot skip it; the tube whitens early in the push, so what
-    // fills the frame is a growing white flash rather than a grey slab.
     .to(".tv-box", { scale: 5.6, rotation: -6, duration: 0.3, ease: "power2.in" }, 0.14)
-    .to(".tv-screen-base", { ...SCREEN.white, duration: 0.16, ease: "power1.in" }, 0.2)
     .fromTo(".tv-whiteout", { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.18, ease: "power1.in" }, 0.3)
     // The contact sheet materialises in the same white (instead of sliding in
     // as a white card over a dark scene); its copy is already rising by then.

@@ -39,6 +39,28 @@
         }
       ]
     },
+    "/images/headline.png": {
+      "width": 1086,
+      "height": 1448,
+      "quality": 78,
+      "variants": [
+        {
+          "type": "image/webp",
+          "srcSet": "/images/opt/headline-480.d354425f.webp 480w, /images/opt/headline-800.d354425f.webp 800w, /images/opt/headline-1086.d354425f.webp 1086w"
+        }
+      ]
+    },
+    "/images/no-wave1.webp": {
+      "width": 3838,
+      "height": 1906,
+      "quality": 78,
+      "variants": [
+        {
+          "type": "image/webp",
+          "srcSet": "/images/opt/no-wave1-480.72e7d11c.webp 480w, /images/opt/no-wave1-800.72e7d11c.webp 800w, /images/opt/no-wave1-1200.72e7d11c.webp 1200w, /images/opt/no-wave1-3838.72e7d11c.webp 3838w"
+        }
+      ]
+    },
     "/images/profilephoto.jpg": {
       "width": 1000,
       "height": 1400,
@@ -47,6 +69,28 @@
         {
           "type": "image/webp",
           "srcSet": "/images/opt/profilephoto-480.c0ab8e27.webp 480w, /images/opt/profilephoto-800.c0ab8e27.webp 800w, /images/opt/profilephoto-1000.c0ab8e27.webp 1000w"
+        }
+      ]
+    },
+    "/images/red1.webp": {
+      "width": 3838,
+      "height": 1783,
+      "quality": 78,
+      "variants": [
+        {
+          "type": "image/webp",
+          "srcSet": "/images/opt/red1-480.c7373516.webp 480w, /images/opt/red1-800.c7373516.webp 800w, /images/opt/red1-1200.c7373516.webp 1200w, /images/opt/red1-3838.c7373516.webp 3838w"
+        }
+      ]
+    },
+    "/images/red2.webp": {
+      "width": 3817,
+      "height": 1908,
+      "quality": 78,
+      "variants": [
+        {
+          "type": "image/webp",
+          "srcSet": "/images/opt/red2-480.5b76564d.webp 480w, /images/opt/red2-800.5b76564d.webp 800w, /images/opt/red2-1200.5b76564d.webp 1200w, /images/opt/red2-3817.5b76564d.webp 3817w"
         }
       ]
     },
@@ -73,24 +117,24 @@
       ]
     },
     "/images/tree1.jpg": {
-      "width": 1200,
-      "height": 900,
+      "width": 3838,
+      "height": 1783,
       "quality": 78,
       "variants": [
         {
           "type": "image/webp",
-          "srcSet": "/images/opt/tree1-480.5804c7b9.webp 480w, /images/opt/tree1-800.5804c7b9.webp 800w, /images/opt/tree1-1200.5804c7b9.webp 1200w"
+          "srcSet": "/images/opt/tree1-480.8823c145.webp 480w, /images/opt/tree1-800.8823c145.webp 800w, /images/opt/tree1-1200.8823c145.webp 1200w, /images/opt/tree1-3838.8823c145.webp 3838w"
         }
       ]
     },
     "/images/tree2.jpg": {
-      "width": 1200,
-      "height": 900,
+      "width": 3817,
+      "height": 1908,
       "quality": 78,
       "variants": [
         {
           "type": "image/webp",
-          "srcSet": "/images/opt/tree2-480.e3346db2.webp 480w, /images/opt/tree2-800.e3346db2.webp 800w, /images/opt/tree2-1200.e3346db2.webp 1200w"
+          "srcSet": "/images/opt/tree2-480.3dea892f.webp 480w, /images/opt/tree2-800.3dea892f.webp 800w, /images/opt/tree2-1200.3dea892f.webp 1200w, /images/opt/tree2-3817.3dea892f.webp 3817w"
         }
       ]
     },

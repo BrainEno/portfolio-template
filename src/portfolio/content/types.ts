@@ -38,11 +38,7 @@ export type Work = {
   credit: LocalizedText;
   /** Still shown inside the television when the work is not a video. */
   image: MediaImage;
-  /**
-   * Optional video shown on the TV screen instead of `image`.
-   * When present, the TV displays the poster (or `image` as fallback) until
-   * the user clicks to play. `preload="metadata"` — never auto-plays.
-   */
+  /** Optional muted, looping video; the poster (or image) is shown while it loads. */
   video?: Video;
   /** Repository / live project link (data only — the index layout is unchanged). */
   url: string;

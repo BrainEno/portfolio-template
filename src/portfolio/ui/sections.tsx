@@ -9,7 +9,7 @@
  */
 "use client";
 
-import { memo, useLayoutEffect, useRef, type CSSProperties } from "react";
+import { memo, useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
 import TvShowreel from "./TvShowreel";
 import { Img } from "./Img";
 import { asset } from "../seo/asset";
@@ -147,6 +147,13 @@ type WorksProps = SectionProps<"works"> & {
 
 export function Works({ lang, content, phone, activeIndex, onPreview }: WorksProps) {
   const zh = lang === "zh";
+  const [alphaReady, setAlphaReady] = useState(false);
+  const alphaRef = useRef<HTMLImageElement>(null);
+  useEffect(() => {
+    // An SSR image may finish before React attaches its load handler.
+    const image = alphaRef.current;
+    if (image?.complete && image.naturalWidth > 0) setAlphaReady(true);
+  }, []);
   const active = activeIndex >= 0 ? content.items[activeIndex] : undefined;
   const { screen, width, height, src } = content.tv;
   const tvStyle = {
@@ -161,50 +168,11 @@ export function Works({ lang, content, phone, activeIndex, onPreview }: WorksPro
 
   return (
     <section id="works" className="works" aria-label={t(content.heading, lang)}>
-      {/* SVG clip-path that traces the exact inner bezel edge of the TV screen.
-          This replaces the crude border-radius approximation with a precise path
-          (like Photoshop's pen tool), so the content seamlessly fits inside the
-          TV frame even when zoomed and rotated. */}
-      <svg width="0" height="0" style={{ position: "absolute" }} aria-hidden="true">
-        <defs>
-          <clipPath id="tv-screen-clip" clipPathUnits="objectBoundingBox">
-            {/* Rounded rectangle with bezier curves matching the actual bezel opening.
-                Corner radii: TL 9%/9%, TR 7%/8%, BR 8%/9%, BL 10%/10%.
-                Bezier approximation factor: 0.5523 for smooth quarter-circle arcs. */}
-            <path d="M 0.09 0 L 0.93 0 C 0.93 0.0442, 0.9687 0.08, 1 0.08 L 1 0.91 C 1 0.9597, 0.9558 1, 0.92 1 L 0.10 1 C 0.0448 1, 0 0.9552, 0 0.90 L 0 0.09 C 0 0.0403, 0.0497 0, 0.09 0 Z" />
-          </clipPath>
-        </defs>
-      </svg>
       <div className="tv-stage">
         <div className="tv-anchor" style={tvStyle}>
           <div className="tv-box">
-            <div className={cx("tv-screen", active && "has-preview")}>
-              <div className="tv-screen-base" />
-            <div className="tv-showreel">
-              <TvShowreel
-                active={
-                  active
-                    ? {
-                        id: active.id,
-                        src: active.image.src,
-                        alt: active.image.alt,
-                        videoSrc: active.video?.src,
-                        videoPoster: active.video?.poster,
-                      }
-                    : null
-                }
-                label={(text) => t(text, lang)}
-              />
-            </div>
-              <div className="tv-scanlines" aria-hidden="true" />
-              <div className="tv-glass" aria-hidden="true" />
-            </div>
-            {/* Below the fold: no `<link rel=preload>` for artwork nobody has
-                scrolled to yet.
-                `sizes` mirrors `.tv-anchor`'s `max(160vw, 230vh)`: the cabinet
-                is laid out far wider than the viewport (the glass, not the
-                box, is what fits the screen), so the default ladder would be
-                blurry. Portrait-ish viewports are height-driven. */}
+            {/* The untouched photo is always underneath. Only a selected work
+                fades in the alpha-cut cabinet and the overscanned picture. */}
             <Img
               className="tv-frame"
               src={src}
@@ -216,6 +184,25 @@ export function Works({ lang, content, phone, activeIndex, onPreview }: WorksPro
               width={width}
               height={height}
             />
+            <div className={cx("tv-live", active && alphaReady && "is-active")}>
+              <div className="tv-screen">
+                <TvShowreel
+                  active={active && alphaReady ? {
+                    id: active.id,
+                    src: active.image.src,
+                    alt: active.image.alt,
+                    videoSrc: active.video?.src,
+                    videoPoster: active.video?.poster,
+                  } : null}
+                  label={(text) => t(text, lang)}
+                />
+                <div className="tv-glass" aria-hidden="true" />
+              </div>
+              {/* Use the supplied alpha at its native resolution: independently
+                  resized derivatives can soften the carefully cut edge. */}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img ref={alphaRef} className="tv-frame tv-alpha" src={asset("/images/tv-alpha.webp")} alt="" aria-hidden="true" loading="lazy" draggable={false} onLoad={() => setAlphaReady(true)} onError={() => setAlphaReady(false)} />
+            </div>
             <div className="tv-number-layer" aria-hidden="true">
               <div className="tv-number">{phone}</div>
             </div>
@@ -239,8 +226,18 @@ export function Works({ lang, content, phone, activeIndex, onPreview }: WorksPro
                 className={cx("work-row", zh && "is-zh", index === activeIndex && "is-active")}
                 data-cursor="view"
                 tabIndex={0}
-                onMouseEnter={() => onPreview(index)}
-                onFocus={() => onPreview(index)}
+                onMouseEnter={() => {
+                  if (window.matchMedia("(hover: hover) and (pointer: fine)").matches) onPreview(index);
+                }}
+                onMouseLeave={(event) => {
+                  if (window.matchMedia("(hover: hover) and (pointer: fine)").matches && !event.currentTarget.matches(":focus-visible")) onPreview(-1);
+                }}
+                onFocus={(event) => {
+                  if (event.currentTarget.matches(":focus-visible")) onPreview(index);
+                }}
+                onBlur={(event) => {
+                  if (!event.currentTarget.contains(event.relatedTarget) && !event.currentTarget.matches(":hover")) onPreview(-1);
+                }}
                 onClick={() => onPreview(index)}
               >
                 <span className="work-row-line" aria-hidden="true" />

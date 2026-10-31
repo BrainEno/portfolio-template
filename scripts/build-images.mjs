@@ -41,11 +41,10 @@ const QUALITY = 78;
 /** A derivative is only useful if it is at least this much smaller than the next one. */
 const MIN_STEP = 1.15;
 /**
- * Files that must keep their original bytes: the booth cutout is a transparent
- * PNG used as the pre-WebGL state (a lossy re-encode shows as a halo around the
- * silhouette).
+ * Transparent cutouts used directly by the components: keep their supplied
+ * alpha edges intact rather than generating unused lossy derivatives.
  */
-const SKIP = new Set(["phone-booth-cutout.png"]);
+const SKIP = new Set(["phone-booth-cutout.png", "telephone-booth.webp", "tv-alpha.webp"]);
 
 /**
  * Per-file overrides. The television artwork is the one image that is *not*

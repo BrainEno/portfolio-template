@@ -49,6 +49,8 @@ jobs:
         run: npm run typecheck
       - name: Lint
         run: npm run lint
+      - name: Check TV alpha geometry
+        run: npm run test:tv-assets
       # `next dev --webpack` is the daily command and it exercises a webpack
       # loader path the production builds never touch — a config that builds
       # fine can still 500 in dev (see the `pageExtensions` note in

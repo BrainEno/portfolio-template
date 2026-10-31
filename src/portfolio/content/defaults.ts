@@ -45,7 +45,7 @@ export const defaultContent: PortfolioContent = {
       { zh: "全栈开发", en: "Full Stack" },
     ],
     image: {
-      src: "/images/figure.jpg",
+      src: "/images/headline.png",
       alt: { zh: "人物主视觉", en: "Portrait artwork" },
     },
   },
@@ -68,8 +68,8 @@ export const defaultContent: PortfolioContent = {
       { src: "/images/work5.jpg", alt: { zh: "作品照5", en: "Work photo 5" } },
     ],
     accentImages: [
-      { src: "/images/screenshot1.jpg", alt: { zh: "作品截图1", en: "Screenshot 1" } },
-      { src: "/images/screenshot2.jpg", alt: { zh: "作品截图2", en: "Screenshot 2" } },
+      { src: "/images/red1.webp", alt: { zh: "作品截图1", en: "Screenshot 1" } },
+      { src: "/images/red2.webp", alt: { zh: "作品截图2", en: "Screenshot 2" } },
     ],
     secondaryText: {
       zh: "他相信，在 AI 赋能的时代，只有当技术不再成为想象力的瓶颈之后，品味才会变得格外重要。AI 能够实现各种代码层面的功能，却无法替代人类的判断与想象力，也无法替人做出取舍——而取舍，正是作品的性格所在。",
@@ -83,18 +83,10 @@ export const defaultContent: PortfolioContent = {
       src: "/images/tv.webp",
       width: 2560,
       height: 1707,
-      // Glass bounds of `tv.webp` (2560x1707), measured from the photo's
-      // gradients: the lit tube runs x 1124-1440 / y 986-1248. The rect is
-      // grown ~12px on every side so it can never be *smaller* than the glass —
-      // a sliver of the photo's own screen beside the picture is the one thing
-      // that reads as broken during the zoom. The bleed lands on the dark
-      // inner bezel, so it costs nothing visibly and absorbs the tube's curved
-      // corners, which a rectangle cannot follow.
-      //
-      // The CRT picture is layered *above* the artwork (see .tv-screen in
-      // portfolio.css), which is what lets it render at full brightness; this
-      // rect is therefore the visible boundary and needs to be right.
-      screen: { top: 57.18, left: 43.45, width: 12.9688, height: 15.8781 },
+      // The transparent opening in tv-alpha.webp (1536×1024) is roughly
+      // x=661–859, y=591–749. This rectangle deliberately extends beyond it:
+      // the alpha artwork, not a guessed CSS curve, supplies the screen edge.
+      screen: { top: 57.13, left: 42.64, width: 13.80, height: 16.60 },
     },
     items: [
       // Five repositories with the highest 2026 commit counts on github.com/BrainEno
@@ -111,8 +103,7 @@ export const defaultContent: PortfolioContent = {
           alt: { zh: "lyric-forge-ktv 仓库", en: "lyric-forge-ktv repository" },
         },
         // Video example: uncomment and replace with your own video to show a clip on the TV.
-        // The TV displays the poster (or `image` as fallback) until the user clicks to play.
-        // `preload="metadata"` — never auto-plays, never burns bandwidth on a clip nobody watches.
+        // The TV plays it muted and looping while selected; the poster (or `image`) is the fallback.
         // video: {
         //   src: "/videos/lyric-forge-ktv.mp4",
         //   poster: "/images/works/lyric-forge-ktv-poster.jpg",
@@ -135,7 +126,7 @@ export const defaultContent: PortfolioContent = {
         year: "2026.10.24",
         credit: { zh: "TypeScript · pnpm · Node", en: "TypeScript · pnpm · Node" },
         image: {
-          src: "/images/works/no-wave.jpg",
+          src: "/images/no-wave1.webp",
           alt: { zh: "no-wave 仓库", en: "no-wave repository" },
         },
         url: "https://github.com/BrainEno/no-wave",
@@ -145,7 +136,7 @@ export const defaultContent: PortfolioContent = {
         },
         detailImages: [
           {
-            src: "/images/works/no-wave.jpg",
+            src: "/images/no-wave1.webp",
             alt: { zh: "no-wave 项目结构", en: "no-wave project structure" },
           },
         ],
@@ -221,7 +212,7 @@ export const defaultContent: PortfolioContent = {
     headlines: ["CALL ME", "FOR THE", "MARQUEE MOON"],
     marquee: { zh: "联系我 —", en: "Contact me —" },
     image: {
-      src: "/images/phone-booth-cutout.png",
+      src: "/images/telephone-booth.webp",
       alt: { zh: "电话亭", en: "Telephone booth" },
     },
     copyright: "© 2026 BrainEno. All rights reserved.",
