@@ -40,8 +40,10 @@ const num = (key, source = screenBlock) => {
   if (!m) throw new Error(`[tv-glass] missing \`${key}\` in works.tv.screen`);
   return Number(m[1]);
 };
-const src = block.match(/src:\s*"([^"]+)"/)?.[1];
-if (!src) throw new Error("[tv-glass] missing `src` in works.tv");
+// The check always draws on the *master* artwork (`assets/images/tv.webp`),
+// not on `works.tv.src` (which now points at the generated cutout): the master
+// is where the rect has to be measured.
+const src = "assets/images/tv.webp";
 
 const screen = {
   top: num("top"),
@@ -49,7 +51,7 @@ const screen = {
   width: num("width"),
   height: num("height"),
 };
-const file = path.join(root, "public", src.replace(/^\//, ""));
+const file = path.join(root, src);
 const meta = await sharp(file).metadata();
 const box = {
   x: Math.round((screen.left / 100) * meta.width),
@@ -58,12 +60,24 @@ const box = {
   h: Math.round((screen.height / 100) * meta.height),
 };
 
+// HOLE_INSET / HOLE_RADIUS mirror scripts/tv-cutout.mjs: the hole that gets
+// punched into the artwork is the screen rect inset by HOLE_INSET, so this
+// overlay shows both boundaries — the layer rect (red) and the hole (cyan).
+const HOLE_INSET = 15;
+const HOLE_RADIUS = 30;
+const hole = {
+  x: box.x + HOLE_INSET,
+  y: box.y + HOLE_INSET,
+  w: box.w - HOLE_INSET * 2,
+  h: box.h - HOLE_INSET * 2,
+};
+
 const overlay = Buffer.from(
   `<svg xmlns="http://www.w3.org/2000/svg" width="${meta.width}" height="${meta.height}">
      <rect x="${box.x}" y="${box.y}" width="${box.w}" height="${box.h}"
            fill="none" stroke="#ff0044" stroke-width="6"/>
-     <rect x="${box.x + 3}" y="${box.y + 3}" width="${box.w - 6}" height="${box.h - 6}"
-           fill="none" stroke="#00ffcc" stroke-width="2"/>
+     <rect x="${hole.x}" y="${hole.y}" width="${hole.w}" height="${hole.h}" rx="${HOLE_RADIUS}"
+           fill="none" stroke="#00ffcc" stroke-width="4" stroke-dasharray="18 12"/>
    </svg>`,
 );
 
@@ -72,7 +86,11 @@ await sharp(file).composite([{ input: overlay, top: 0, left: 0 }]).png().toFile(
 
 console.log(
   `[tv-glass] ${src} ${meta.width}x${meta.height}\n` +
-    `[tv-glass] screen rect → x ${box.x}–${box.x + box.w}, y ${box.y}–${box.y + box.h} ` +
+    `[tv-glass] screen rect (red)  → x ${box.x}–${box.x + box.w}, y ${box.y}–${box.y + box.h} ` +
     `(${box.w}x${box.h}px)\n` +
+    `[tv-glass] cutout hole (cyan) → x ${hole.x}–${hole.x + hole.w}, y ${hole.y}–${hole.y + hole.h} ` +
+    `(${hole.w}x${hole.h}px)\n` +
+    `[tv-glass] the cyan hole must cover the lit glass and land on the dark bezel;\n` +
+    `[tv-glass] the red rect must stay larger than the hole on every side.\n` +
     `[tv-glass] overlay written to ${out}`,
 );

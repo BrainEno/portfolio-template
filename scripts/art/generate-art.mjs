@@ -1,7 +1,7 @@
 /**
  * Renders the vector illustrations and starter placeholder media:
  *   public/images/tv-placeholder.webp   - the vector television scene
- *   public/images/tv.webp               - only if it does not exist yet (see below)
+ *   assets/images/tv.webp             - the master artwork, only seeded if missing (see below)
  *   public/images/phone-booth-cutout.png - the telephone booth
  *   public/images/figure.jpg             - hero image
  *   public/images/profilephoto.jpg       - biography portrait
@@ -27,13 +27,14 @@ mkdirSync(iconsOut, { recursive: true });
 
 const W = 2560;
 const H = 1707;
-// Glass rectangle of the *placeholder* cabinet, in the same percentages the
-// content uses (`src/portfolio/content/defaults.ts` → `works.tv.screen`).
+// Screen-layer rectangle of the *placeholder* cabinet, in the same percentages
+// the content uses (`src/portfolio/content/defaults.ts` → `works.tv.screen`).
 // They must agree: if this artwork is ever seeded as `tv.webp` (a fresh clone
-// with no photo), the picture overlay is positioned from those percentages, so
-// a placeholder with the glass somewhere else would look broken.
-// Defaults today: { top: 57.18, left: 43.45, width: 12.9688, height: 15.8781 }.
-const glass = { x: 0.4345 * W, y: 0.5718 * H, w: 0.129688 * W, h: 0.158781 * H };
+// with no photo), `scripts/tv-cutout.mjs` punches the glass hole at this rect
+// (inset 15px), so a placeholder with the glass somewhere else would look
+// broken.
+// Defaults today: { top: 56.3, left: 42.77, width: 13.83, height: 18.28 }.
+const glass = { x: 0.4277 * W, y: 0.563 * H, w: 0.1383 * W, h: 0.1828 * H };
 
 const grain = (w, h, count, color) =>
   Array.from({ length: count }, (_, i) => {
@@ -80,10 +81,10 @@ const tvSvg = `
   <rect x="868" y="782" width="824" height="516" rx="46" fill="none" stroke="#8a5a36" stroke-opacity="0.55" stroke-width="3"/>
   ${Array.from({ length: 9 }, (_, i) => `<rect x="${1010 + i * 60}" y="812" width="38" height="8" rx="4" fill="#1a0f07" opacity="0.8"/>`).join("")}
 
-  <rect x="${glass.x - 62}" y="${glass.y - 58}" width="${glass.w + 124}" height="${glass.h + 116}" rx="64" fill="url(#bezel)"/>
-  <rect x="${glass.x - 62}" y="${glass.y - 58}" width="${glass.w + 124}" height="${glass.h + 116}" rx="64" fill="none" stroke="#3a322a" stroke-width="3"/>
-  <rect x="${glass.x - 14}" y="${glass.y - 14}" width="${glass.w + 28}" height="${glass.h + 28}" rx="48" fill="#070606"/>
-  <rect x="${glass.x + 2}" y="${glass.y + 2}" width="${glass.w - 4}" height="${glass.h - 4}" rx="34" fill="#fff"/>
+  <rect x="${glass.x - 40}" y="${glass.y - 36}" width="${glass.w + 75}" height="${glass.h + 50}" rx="36" fill="url(#bezel)"/>
+  <rect x="${glass.x - 40}" y="${glass.y - 36}" width="${glass.w + 75}" height="${glass.h + 50}" rx="36" fill="none" stroke="#3a322a" stroke-width="3"/>
+  <rect x="${glass.x - 14}" y="${glass.y - 14}" width="${glass.w + 28}" height="${glass.h + 28}" rx="30" fill="#070606"/>
+  <rect x="${glass.x + 2}" y="${glass.y + 2}" width="${glass.w - 4}" height="${glass.h - 4}" rx="24" fill="#fff"/>
 
   ${Array.from({ length: 11 }, (_, i) => `<rect x="918" y="${920 + i * 22}" width="86" height="6" rx="3" fill="#120a05" opacity="0.85"/>`).join("")}
   <circle cx="1560" cy="1000" r="38" fill="url(#knob)"/><circle cx="1560" cy="1000" r="38" fill="none" stroke="#000" stroke-opacity="0.5" stroke-width="3"/>
@@ -196,15 +197,20 @@ async function renderCard(targetPath, w, h, title, subtitle, [c1, c2, c3]) {
 //
 // The TV is the one piece of artwork a project is expected to *replace* with a
 // photo of its own, so regenerating it in place would silently destroy that
-// work. The vector scene is written to `tv-placeholder.webp`; `tv.webp` is
-// only seeded when it is still missing (a fresh clone of the template).
-const tvTarget = path.join(out, "tv.webp");
+// work. The master lives at `assets/images/tv.webp` (outside `public/`, so the
+// static export never ships it); the vector scene is always written to
+// `public/images/tv-placeholder.webp`, and the master is only seeded from it
+// when still missing (a fresh clone of the template) — `scripts/tv-cutout.mjs`
+// then turns it into the `tv-cutout.webp` the site actually renders.
+const tvMasterDir = path.join(root, "assets", "images");
+mkdirSync(tvMasterDir, { recursive: true });
+const tvTarget = path.join(tvMasterDir, "tv.webp");
 await sharp(Buffer.from(tvSvg)).webp({ quality: 88 }).toFile(path.join(out, "tv-placeholder.webp"));
 if (existsSync(tvTarget)) {
-  console.log("[art] public/images/tv.webp exists — kept as is (placeholder written to tv-placeholder.webp)");
+  console.log("[art] assets/images/tv.webp exists — kept as is (placeholder written to tv-placeholder.webp)");
 } else {
   await copyFile(path.join(out, "tv-placeholder.webp"), tvTarget);
-  console.log("[art] seeded public/images/tv.webp from the vector placeholder");
+  console.log("[art] seeded assets/images/tv.webp from the vector placeholder");
 }
 await sharp(Buffer.from(boothSvg)).png({ compressionLevel: 9 }).toFile(path.join(out, "phone-booth-cutout.png"));
 

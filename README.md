@@ -112,7 +112,8 @@ npm run build:static
 | `npm run smoke` | 用普通静态服务器托管 `out/` 并逐页爬一遍（CI 也跑这个） |
 | `npm run lint` · `typecheck` | ESLint · TypeScript |
 | `npm run art` | 重新生成电话亭抠图兜底与电视机**占位**插画（不会覆盖你自己的 `tv.webp`） |
-| `npm run tv-glass` | 把 `works.tv.screen` 的矩形画到电视图上，核对玻璃位置（输出 `/tmp/tv-glass-check.png`） |
+| `npm run tv-cutout` | 从母图 `assets/images/tv.webp` 按 `works.tv.screen` 抠出玻璃洞，生成 `tv-cutout.webp` 与光场图 `tv-glass-glow.webp`（`dev` / `build` 前自动执行） |
+| `npm run tv-glass` | 把 `works.tv.screen` 矩形（红）和实际抠洞（青）画到母图上，换照片时核对玻璃位置（输出 `/tmp/tv-glass-check.png`） |
 | `python3 scripts/optimize-booth-model.py` | 由 `assets/models/telephone.gltf` 重新生成 `public/gltfs/telephone.glb`（需 ImageMagick） |
 
 ## 目录结构

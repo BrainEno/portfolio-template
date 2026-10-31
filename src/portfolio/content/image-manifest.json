@@ -127,14 +127,14 @@
         }
       ]
     },
-    "/images/tv.webp": {
+    "/images/tv-cutout.webp": {
       "width": 2560,
       "height": 1707,
-      "quality": 76,
+      "quality": 90,
       "variants": [
         {
           "type": "image/webp",
-          "srcSet": "/images/opt/tv-1280.ae8ab0ef.webp 1280w, /images/opt/tv-1920.ae8ab0ef.webp 1920w, /images/opt/tv-2560.ae8ab0ef.webp 2560w"
+          "srcSet": "/images/opt/tv-cutout-1280.76443e38.webp 1280w, /images/opt/tv-cutout-1920.76443e38.webp 1920w, /images/opt/tv-cutout-2560.76443e38.webp 2560w"
         }
       ]
     },

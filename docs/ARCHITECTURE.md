@@ -81,20 +81,27 @@ Hero、肖像（含重影层）、画廊、两张点缀图、电视封面、作�
 `public/images/**` 压成 480 / 800 / 1200 三档 WebP，写进 `public/images/opt/`，同时生成
 `src/portfolio/content/image-manifest.json`；`ui/Img.tsx` 按清单给每个 `<img>` 挂
 `srcSet` + `sizes`（`sizes` 是各版面实测的 vw 值，见组件调用处）。两条例外：`.webp` 源
-（也就是被换成照片的电视图）同样进管线；`tv.webp` 用 `OVERRIDES` 里单独的一档
-（1280/1920/2560，q76）——它的 `sizes` 不是视口宽度，而是 `max(160vw, 230vh)`。三条不变量：
+（也就是被换成照片的电视图派生出的 `tv-cutout.webp`）同样进管线，用 `OVERRIDES` 里单独的一档
+（1280/1920/2560，q90——它带 alpha 洞，质量低了羽化边会毛）——它的 `sizes` 不是视口宽度，
+而是 `max(160vw, 230vh)`。母图 `tv.webp` 与光场图 `tv-glass-glow.webp` 在 `SKIP` 里，不进管线。
+三条不变量：
 
 1. `src` 永远是真实文件——清单没跟上、浏览器不支持 `srcSet`、图被删掉，都只是"没有优化"，不会 404/空白；
 2. 不包 `<picture>`——`.story-photo-mask img`、`.tv-frame` 这类选择器，以及 flex 几何，都要求 `<img>` 自己就是那个盒子；
 3. 清单是提交进仓库的生成物，脚本按 mtime 增量跳过，几十毫秒就跑完。
 
-**电视图的分层**：`tv.webp` 只负责**机柜**，屏幕里的画面是盖在它**上面**的一层
-DOM（`.tv-screen` 等，`z-index` 高于 `.tv-frame`），位置来自 `works.tv.screen` 的百分比矩形。
-早期版本反过来：机柜图压在最上层并带 `mix-blend-mode: darken`，靠插画里那块**近白**玻璃
-让下面的画面透出来。照片的玻璃是暗的，`darken` 会把画面亮度按像素压到照片的亮度（实测灰底
-255 的画面只能到 95/255，扫描线基本看不见），所以换照片后必须把顺序反过来。
-代价是矩形要**量准**：它是可见边界，偏一点就会露出照片自带的屏幕或压到边框。
-`npm run tv-glass` 负责把矩形画出来核对。
+**电视图的分层**：边界不再由第二份「量出来的矩形 + clip-path」决定，而是**抠进照片本身**。
+`npm run tv-cutout`（`scripts/tv-cutout.mjs`，`dev`/`build` 前自动跑）读取母图 `tv.webp` 与
+`works.tv.screen` 的百分比矩形，在玻璃位置抠出一个圆角、羽化的 alpha 洞，写出
+`tv-cutout.webp`（站点渲染的就是它）和一张 `tv-glass-glow.webp` 光场图（母图屏幕区域的
+中灰归一化高通：暖/绿光晕、高光斑、边缘暗角）。DOM 上 `.tv-screen`（画面层）在 `.tv-frame`
+（抠洞机柜图）**之下**，所以可见边界永远是照片自己的内边框——画面和边框同属一张图，
+任意缩放旋转都不会错位，也就没有「贴上去的矩形」那圈缝；洞的羽化边让画面到边框是软过渡。
+`works.tv.screen` 只需**大于**洞（洞 = 矩形四边各收 15px），多出的部分被边框盖住，
+只负责保证画面永远压到洞边之下。光场图以 `mix-blend-mode: overlay` 盖在整管屏幕最上层
+（`.tv-glass-glow`，连雪花之上），让注入的画面吃进照片玻璃的现场光。
+换照片流程：替换 `assets/images/tv.webp`（母图）→ `npm run tv-glass` 把红框（层矩形）和青框（实际抠洞）
+画在母图上肉眼对齐 → 把百分比写回 `works.tv.screen` → `npm run tv-cutout && npm run images`。
 
 ## 6. 转场与 Contact 区动效
 
@@ -181,9 +188,10 @@ DOM（`.tv-screen` 等，`z-index` 高于 `.tv-frame`），位置来自 `works.t
 
 - 内容改动没有图形界面：`published.json` 是 JSON，字段含义见 `docs/QUICKSTART.md` 与 `content/types.ts`。
 - 电视机默认是矢量原创插画（`tv-placeholder.webp` 的源），可以直接用**你自己的照片**替换
-  `public/images/tv.webp`；但画面是盖在照片**之上**的，所以照片里玻璃的位置必须写进
-  `works.tv.screen`（`tv.webp` 上的百分比矩形）。`npm run tv-glass` 会把这个矩形画出来，
-  肉眼对齐后把像素换算成百分比写回。照片比例换得狠时，`160vw / 230vh` 的锚定尺寸也要复核。
+  `assets/images/tv.webp`；换完后跑 `npm run tv-glass` 把屏幕矩形画在母图上肉眼对齐，
+  把百分比写回 `works.tv.screen`（矩形要盖住玻璃并压上内边框几像素），再跑
+  `npm run tv-cutout && npm run images` 重新抠洞、生成派生图与清单。
+  照片比例换得狠时，`160vw / 230vh` 的锚定尺寸也要复核。
   电话亭为上传的 glTF 模型。
 - 仓库同时保留原始 `telephone.gltf`（38 MB，在 `assets/models/`）与优化后的 `.glb`（2.15 MB，在 `public/gltfs/`），
   只有 `.glb` 参与运行时加载。源文件**必须**留在 `public/` 之外：`public/` 会被原样拷进 `out/`，
