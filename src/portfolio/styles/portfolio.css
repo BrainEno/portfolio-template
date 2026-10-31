@@ -771,10 +771,16 @@ body {
   --glass-k: 1;
 }
 
-/* The picture's rectangle inside the padded box. */
+/* The picture's rectangle inside the padded box.
+   NO z-index here on purpose: `position: absolute` + `z-index: 1` would create
+   a stacking context that traps the channel-change layers (.tv-static z:5,
+   .tv-sync-line z:6, .tv-roll z:6) inside the raster, painting them BELOW the
+   light layers (.tv-tint z:4 … .tv-reflect z:7) and killing the CRT effect.
+   With z-index left at `auto` the raster does NOT form a stacking context, so
+   its positioned descendants participate directly in `.tv-screen`'s context and
+   interleave with the light layers exactly as the z-index values intend. */
 .tv-raster {
   position: absolute;
-  z-index: 1;
   top: var(--aperture-top);
   left: var(--aperture-left);
   width: var(--aperture-width);
