@@ -99,7 +99,9 @@ Hero、肖像（含重影层）、画廊、两张点缀图、电视封面、作�
 高光斑、边缘暗角）和 `content/tv-tube.json`（aperture / box / outset 几何）。DOM 上 `.tv-screen`
 （画面，按 json 的 `box` = aperture + 28px bleed 定位）在 `.tv-frame`（抠洞机柜图）**之下**，
 所以可见边界永远是照片自己的内边框——画面和边框同属一张图，任意缩放旋转都不会错位，缝不存在；
-洞落在暗缝里且带 guard（外扩带内不许出现 ≥38 的亮像素，脚本会告警）。
+洞落在暗缝里且带双重保护：mask 是**行带 ∪ 列带的并集**（交集会在弧形缘的细触须列上留下
+未抠开的竖墙），同时把玻璃外亮像素（≥38）膨胀 2·feather 的危险区从 mask 挖掉，
+再加上 guard 告警（外扩带内出现 ≥38 亮像素即警告）。
 `works.tv.screen` 保持为 aperture（zoom 中心 --screen-cx/cy 与 CSS 兜底）。光场图以
 `mix-blend-mode: overlay` 盖在整管屏幕最上层（`.tv-glass-glow`，连雪花之上），另加
 `--tv-black`（默认 rgb(8,12,10)）的 screen 黑位抬升（`.tv-black-lift`），让注入画面吃进

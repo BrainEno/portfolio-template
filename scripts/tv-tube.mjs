@@ -207,27 +207,67 @@ const box = {
   h: Math.min(H, aperture.y + aperture.h + BLEED) - Math.max(0, aperture.y - BLEED),
 };
 
-// --- hole mask: row/col profiles grown by the per-side outset, then feathered.
-// Columns without a profile entry (outside the blob's x-range, i.e. the grown
-// flank margins) count as spanning the whole blob height — otherwise the
-// row∩column intersection would clip exactly the bowed left/right edges and
-// leave a strip of glass uncovered.
+// --- hole mask: UNION of the row-grown band and the column-grown band (the
+// blob itself is inside both). An intersection (row band ∩ column band) is
+// wrong: along the bowed left edge some columns are only reached by a thin
+// flood-fill tendril, so their colT/colB span just a few rows and every row
+// outside that span was left uncut — a thin opaque WALL inside the hole,
+// visible at zoom as a jagged strip of cabinet inside the screen edge.
+// Union keeps every flank pixel grown by its own side's outset. Profiles are
+// lightly smoothed first so flood-fill jaggies don't become edge waviness.
+const smooth = (map) => {
+  const keys = [...map.keys()].sort((a, b) => a - b);
+  const out = new Map();
+  for (const k of keys) {
+    let s = 0, n = 0;
+    for (let d = -2; d <= 2; d++) {
+      const v = map.get(k + d);
+      if (v !== undefined) { s += v; n++; }
+    }
+    out.set(k, Math.round(s / n));
+  }
+  return out;
+};
+const rowLs = smooth(rowL), rowRs = smooth(rowR), colTs = smooth(colT), colBs = smooth(colB);
+// Danger zone: bright pixels (chrome / hairlines outside the glass) dilated by
+// 2·FEATHER — the hole edge feather spreads ±~2σ, so the mask must stop this
+// far from any bright pixel or the blurred edge would shave the chrome.
+const R_DANGER = Math.ceil(2 * FEATHER);
+const danger = new Uint8Array(W * H);
+for (let i = 0; i < W * H; i++) {
+  if (seen[i] || lum[i] < BRIGHT) continue;
+  const x = i % W, y = (i / W) | 0;
+  for (let dy = -R_DANGER; dy <= R_DANGER; dy++) {
+    const yy = y + dy;
+    if (yy < 0 || yy >= H) continue;
+    for (let dx = -R_DANGER; dx <= R_DANGER; dx++) {
+      const xx = x + dx;
+      if (xx >= 0 && xx < W) danger[yy * W + xx] = 1;
+    }
+  }
+}
 const mask = new Uint8Array(W * H);
 let brightInHole = 0;
 let maxHoleLum = 0;
-for (let y = minY; y <= maxY; y++) {
-  const l = rowL.get(y) - outset.l;
-  const r = rowR.get(y) + outset.r;
-  for (let x = Math.max(0, l); x <= Math.min(W - 1, r); x++) {
-    const t = colT.get(x) ?? minY;
-    const b = colB.get(x) ?? maxY;
-    if (y >= t - outset.t && y <= b + outset.b) {
-      mask[y * W + x] = 255;
-      // guard: the grown hole must never reach chrome / hairlines (lum ≥ BRIGHT)
-      if (!seen[y * W + x] && lum[y * W + x] >= BRIGHT) brightInHole++;
-      if (!seen[y * W + x] && lum[y * W + x] > maxHoleLum) maxHoleLum = lum[y * W + x];
-    }
+const mark = (x, y) => {
+  if (danger[y * W + x]) return;
+  mask[y * W + x] = 255;
+  // guard: the grown hole must never reach chrome / hairlines (lum ≥ BRIGHT)
+  if (!seen[y * W + x]) {
+    const l = lum[y * W + x];
+    if (l >= BRIGHT) brightInHole++;
+    if (l > maxHoleLum) maxHoleLum = l;
   }
+};
+for (let y = minY; y <= maxY; y++) {
+  const l = Math.max(0, rowLs.get(y) - outset.l);
+  const r = Math.min(W - 1, rowRs.get(y) + outset.r);
+  for (let x = l; x <= r; x++) mark(x, y);
+}
+for (let x = minX; x <= maxX; x++) {
+  const t = Math.max(0, colTs.get(x) - outset.t);
+  const b = Math.min(H - 1, colBs.get(x) + outset.b);
+  for (let y = t; y <= b; y++) mark(x, y);
 }
 if (brightInHole > 0) {
   console.warn(
